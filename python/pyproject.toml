@@ -1,0 +1,63 @@
+[project]
+name = "hack"
+version = "0.1.0"
+requires-python = ">=3.12, <4.0"
+dependencies = [
+    "dishka",
+    "sqlalchemy",
+    "pydantic",
+    "pydantic-settings",
+    "fastapi",
+    "uvicorn",
+    "psycopg[binary]",
+    "alembic",
+    "ruff",
+    "pytest",
+    "requests",
+    "deepdiff",
+    "authx",
+    "argon2-cffi",
+    "jsonschema (>=4.25.0,<5.0.0)",
+    "ping3 (>=5.1.5,<6.0.0)",
+    "python3-nmap (>=1.9.1,<2.0.0)",
+    "pydig (>=0.4.0,<0.5.0)",
+    "geoip2 (>=5.1.0,<6.0.0)",
+    "redis (<7)",
+    "asyncssh (>=2.21.1,<3.0.0)",
+    "scapy (>=2.6.1,<3.0.0)",
+    "taskiq (>=0.11.19,<0.12.0)",
+    "taskiq-redis (>=1.1.2,<2.0.0)",
+    "validators (>=0.35.0,<0.36.0)",
+    "aiodns (>=3.5.0,<4.0.0)",
+    "aiosqlite (>=0.21.0,<0.22.0)",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project.scripts]
+run-rest-server = "hack.rest_server.main.run_rest_server:main"
+run-tasksd = "hack.tasksd.main:main"
+run-bindingd = "hack.bindingd.main:main"
+run-agent-rest-server = "hack.agent.rest_server.main.run_rest_server:main"
+
+[tool.ruff]
+line-length = 79
+extend-exclude = ["alembic"]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]

@@ -1,0 +1,31 @@
+name: "hack"
+services:
+  rest-server:
+    build: ./python
+    command: run-rest-server
+    restart: unless-stopped
+    ports:
+      - ${COMPOSE__REST_SERVER__HOST}:${COMPOSE__REST_SERVER__PORT}:80
+    env_file: ./python/.env
+    volumes:
+      - sqlite_data:/var/sqlite
+  tool-alembic:
+    profiles:
+      - tools
+    build: ./python
+    entrypoint: /usr/src/app/alembic-entrypoint.sh
+    restart: no
+    environment:
+      EXTERNAL_UID: ${COMPOSE__UID}
+      EXTERNAL_GID: ${COMPOSE__GID}
+    env_file: ./python/.env
+    volumes:
+      - sqlite_data:/var/sqlite
+  run-integration-tests:
+    profiles:
+      - tests
+    build: ./python
+    entrypoint: pytest
+
+volumes:
+  sqlite_data:
