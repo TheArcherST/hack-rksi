@@ -10,14 +10,15 @@ def test_appeals_routing_respects_weights_and_limits(client):
         op1: ACTIVE, limit=1
         op2: ACTIVE, limit=100
     - привязываем их к источнику с весами:
-        op1: routing_factor = 1_000_000 (очень большой)
+        op1: routing_factor = 1_000_000_000 (очень большой)
         op2: routing_factor = 1
     - создаём пачку обращений для одного и того же lead_id;
     - проверяем:
         * лимит op1 соблюдён (не более 1 активного обращения);
         * оба оператора получили обращения;
         * подавляющее большинство обращений ушло на op2 после того,
-          как op1 набрал свой лимит.
+          как op1 набрал свой лимит;
+        * данные в /inspect сходятся с проведёнными операциями
     """
 
     # ---------- 1. Создаём lead source ----------
@@ -87,7 +88,7 @@ def test_appeals_routing_respects_weights_and_limits(client):
         r = client.prepsend(req)
         assert r.status_code == 201
 
-    # ---------- 5. Анализируем распределение ----------
+    # ---------- 5. Анализируем распределение по /appeals ----------
     req = api_templates.make_list_appeals()
     r = client.prepsend(req)
     assert r.status_code == 200
@@ -123,8 +124,60 @@ def test_appeals_routing_respects_weights_and_limits(client):
     assert op2_count >= appeals_to_create - 1
 
     # При таком перекосе весов почти наверняка хотя бы одно обращение уйдёт на op1.
-    # Вероятность, что op1 не будет выбран ни разу, практически нулевая, но теоретически
-    # возможна, так что это можно закомментировать, если хочется убрать любую
-    # вероятностную флаковость:
     assert op1_count >= 1, "Expected operator1 to be chosen at least once"
     assert op2_count >= 1, "Expected operator2 to be chosen at least once"
+
+    # ---------- 7. Сверка через /inspect/leads ----------
+    req = api_templates.make_inspect_leads()
+    r = client.prepsend(req)
+    assert r.status_code == 200
+    leads = r.json()
+
+    # Находим нужного лида
+    lead_item = next((l for l in leads if l["id"] == lead_id), None)
+    assert lead_item is not None, f"Lead {lead_id} not found in /inspect/leads"
+
+    # Берём только обращения этого лида по нашему источнику
+    inspected_appeals = [
+        a for a in lead_item.get("appeals", [])
+        if a["lead_source_id"] == lead_source_id
+    ]
+    assert len(inspected_appeals) == appeals_to_create
+
+    # Пересчитываем распределение по операторам из /inspect/leads
+    inspected_counts: dict[int, int] = {}
+    for a in inspected_appeals:
+        operator_id = a["assigned_operator_id"]
+        assert operator_id is not None
+        inspected_counts[operator_id] = inspected_counts.get(operator_id, 0) + 1
+
+    inspected_op1_count = inspected_counts.get(op1_id, 0)
+    inspected_op2_count = inspected_counts.get(op2_id, 0)
+
+    assert inspected_op1_count == op1_count
+    assert inspected_op2_count == op2_count
+
+    # ---------- 8. Сверка через /inspect/appeals-distribution ----------
+    req = api_templates.make_inspect_appeals_distribution()
+    r = client.prepsend(req)
+    assert r.status_code == 200
+    distribution = r.json()
+
+    def find_dist(lead_source_id_: int, operator_id_: int | None) -> int | None:
+        for item in distribution:
+            if (
+                item["lead_source_id"] == lead_source_id_
+                and item["assigned_operator_id"] == operator_id_
+            ):
+                return item["appeals_count"]
+        return None
+
+    dist_op1 = find_dist(lead_source_id, op1_id)
+    dist_op2 = find_dist(lead_source_id, op2_id)
+
+    # Ожидаем, что в агрегатах есть записи для обоих операторов
+    assert dist_op1 is not None, "No distribution record for operator1 in /inspect/appeals-distribution"
+    assert dist_op2 is not None, "No distribution record for operator2 in /inspect/appeals-distribution"
+
+    assert dist_op1 == op1_count
+    assert dist_op2 == op2_count

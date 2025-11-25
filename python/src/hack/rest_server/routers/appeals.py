@@ -2,9 +2,10 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, status, HTTPException
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from hack.core.models import Appeal
+from hack.core.models import Appeal, Lead
 from hack.core.models.appeal import AppealStatusEnum
 from hack.core.services.uow_ctl import UoWCtl
 from hack.core.services.appeal_routing import (
@@ -35,6 +36,10 @@ async def create_appeal(
     routing_service: FromDishka[AppealRoutingService],
     payload: CreateAppealDTO,
 ) -> Appeal:
+    stmt = (insert(Lead)
+            .values(id=payload.lead_id)
+            .on_conflict_do_nothing())
+    await session.execute(stmt)
     appeal = Appeal(
         status=AppealStatusEnum.ACTIVE,
         lead_id=payload.lead_id,

@@ -150,3 +150,19 @@ def make_delete_appeal() -> PatchedRequest:
         method="DELETE",
         url=_base_url + "/appeals/{appeal_id}",
     )
+
+
+# ---------- INSPECT ----------
+
+def make_inspect_leads() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/inspect/leads",
+    )
+
+
+def make_inspect_appeals_distribution() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/inspect/appeals-distribution",
+    )
