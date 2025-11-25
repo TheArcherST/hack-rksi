@@ -10,6 +10,23 @@
     ```
 4. По умолчанию (.env.example), REST API будет доступен по адресу http://127.0.0.1:8080
 
+## Немного про структуру кода
+
+Данная структура и всякие инфраструктурные штуки (вроде запуска миграций) я
+взял из своего открытого репо
+
+https://github.com/TheArcherST/hack
+
+Там лежит бэкенд с недавнего хакатона.  Эта структура -- результат множества
+таких вот переносов структуры из проекта в проект с сопутствующими
+доработками / адаптациями.
+
+Что вам может быть интересно сразу увидеть:
+1. **Модели**: [python/src/hack/core/models](https://github.com/TheArcherST/test-task/tree/master/python/src/hack/core/models)  
+2. **Роутеры**: [python/src/hack/rest_server/routers](https://github.com/TheArcherST/test-task/tree/master/python/src/hack/rest_server/routers)  
+3. **Тесты**: [python/src/hack/integration_tests](https://github.com/TheArcherST/test-task/tree/master/python/src/hack/integration_tests)
+
+
 ## Интеграционные тесты
 
 1. Запустить:
