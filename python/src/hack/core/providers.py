@@ -4,13 +4,12 @@ from pathlib import Path
 from dishka import Provider, Scope, provide
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     create_async_engine,
 )
-from sqlalchemy.orm import Session
 
 
 class EnsureDatabaseFKsSentinel:
@@ -77,9 +76,24 @@ class ProviderDatabase(Provider):
             self,
             config: ConfigSQLite,
     ) -> AsyncEngine:
-        return create_async_engine(
+
+        engine = create_async_engine(
             config.get_sqlalchemy_url("aiosqlite"),
         )
+
+        # see https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#transactions-with-sqlite-and-the-sqlite3-driver
+
+        @event.listens_for(engine.sync_engine, "connect")
+        def do_connect(dbapi_connection, connection_record):
+            # disable aiosqlite's emitting of the BEGIN statement entirely.
+            dbapi_connection.isolation_level = None
+
+        @event.listens_for(engine.sync_engine, "begin")
+        def do_begin(conn):
+            # emit our own BEGIN.  aiosqlite still emits COMMIT/ROLLBACK correctly
+            conn.exec_driver_sql("BEGIN")
+
+        return engine
 
     @provide(scope=Scope.SESSION)
     async def get_database_session(
@@ -101,20 +115,3 @@ class ProviderDatabase(Provider):
             from . import sqlalchemy_events
             assert sqlalchemy_events
             return EnsureDatabaseFKsSentinel()
-
-
-class ProviderTestDatabase(Provider):
-    def get_database_engine(
-            self,
-            config: ConfigSQLite,
-    ) -> Engine:
-        return create_engine(
-            config.get_sqlalchemy_url("aiosqlite"),
-        )
-
-    def get_database_session(
-            self,
-            engine: Engine,
-    ) -> Iterable[Session]:
-        with Session(engine) as session:
-            yield session
