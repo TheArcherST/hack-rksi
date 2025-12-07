@@ -1,7 +1,7 @@
 from . import api_templates
 
 
-def test_appeals_routing_respects_weights_and_limits(client):
+def test_appeals_routing_respects_weights_and_limits(client, authed_client):
     """
     Интеграционный тест роутинга обращений:
 
@@ -86,6 +86,8 @@ def test_appeals_routing_respects_weights_and_limits(client):
             "lead_source_id": lead_source_id,
         }
         r = client.prepsend(req)
+        assert r.status_code == 401
+        r = authed_client.prepsend(req)
         assert r.status_code == 201
 
     # ---------- 5. Анализируем распределение по /appeals ----------

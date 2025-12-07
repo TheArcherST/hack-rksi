@@ -12,6 +12,7 @@ from hack.core.services.appeal_routing import (
     AppealRoutingService,
     NoAvailableOperatorError,
 )
+from hack.rest_server.models import AuthorizedUser
 from hack.rest_server.schemas.appeals import (
     AppealDTO,
     CreateAppealDTO,
@@ -35,6 +36,7 @@ async def create_appeal(
     uow_ctl: FromDishka[UoWCtl],
     routing_service: FromDishka[AppealRoutingService],
     payload: CreateAppealDTO,
+    _authorized_user: FromDishka[AuthorizedUser],
 ) -> Appeal:
     stmt = (insert(Lead)
             .values(id=payload.lead_id)
