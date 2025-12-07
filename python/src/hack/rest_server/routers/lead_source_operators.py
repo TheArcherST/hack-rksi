@@ -4,7 +4,7 @@ from fastapi import APIRouter, status, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from hack.core.models import LeadSourceOperator
+from hack.core.models.operator import LeadSourceOperator
 from hack.core.services.uow_ctl import UoWCtl
 from hack.rest_server.schemas.lead_source_operators import (
     LeadSourceOperatorDTO,
