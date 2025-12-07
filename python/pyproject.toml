@@ -9,12 +9,15 @@ dependencies = [
     "pydantic-settings",
     "fastapi",
     "uvicorn",
-    "psycopg[binary]",
+    "psycopg[binary] (>=3.3.2,<4.0.0)",
     "alembic",
     "ruff",
     "pytest",
     "deepdiff",
-    "aiosqlite (>=0.21.0,<0.22.0)",
+    "redis (>=7.1.0,<8.0.0)",
+    "authx (>=1.4.3,<2.0.0)",
+    "taskiq (>=0.12.1,<0.13.0)",
+    "argon2-cffi (>=25.1.0,<26.0.0)",
 ]
 
 [build-system]

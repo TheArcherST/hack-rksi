@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, pool
 
 from hack.core.models.base import Base
 from hack.core.providers import (
-    ConfigSQLite,
+    ConfigPostgres,
     ProviderConfig,
 )
 
@@ -33,8 +33,8 @@ target_metadata = Base.metadata
 
 def get_url() -> str:
     container = make_container(ProviderConfig())
-    postgres_config = container.get(ConfigSQLite)
-    url = postgres_config.get_sqlalchemy_url(driver="pysqlite")
+    postgres_config = container.get(ConfigPostgres)
+    url = postgres_config.get_sqlalchemy_url(driver="psycopg")
     return url
 
 

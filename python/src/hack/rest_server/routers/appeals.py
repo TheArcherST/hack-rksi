@@ -2,7 +2,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, status, HTTPException
 from sqlalchemy import select
-from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from hack.core.models import Appeal, Lead
@@ -38,7 +38,7 @@ async def create_appeal(
 ) -> Appeal:
     stmt = (insert(Lead)
             .values(id=payload.lead_id)
-            .on_conflict_do_nothing())
+            .on_conflict_do_nothing(index_elements=['id']))
     await session.execute(stmt)
     appeal = Appeal(
         status=AppealStatusEnum.ACTIVE,

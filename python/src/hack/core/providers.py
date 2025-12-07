@@ -1,48 +1,67 @@
 from collections.abc import AsyncGenerator, Iterable
-from pathlib import Path
 
 from dishka import Provider, Scope, provide
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import event, Engine
-from sqlalchemy.dialects.sqlite.aiosqlite import \
-    AsyncAdapt_aiosqlite_connection
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     create_async_engine,
 )
+from sqlalchemy.orm import Session
+
+from redis.asyncio import Redis as AsyncRedis
 
 
-class ConfigSQLite(BaseModel):
-    path: str | None = None
-    test_path: str | None = None
+class ConfigPostgres(BaseModel):
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
+    test_database: str | None = None
     use_test_by_default: bool = False
+    pool_size: int = 5
+    pool_max_overflow: int = 10
 
     def get_sqlalchemy_url(
         self,
-        driver: str = "aiosqlite",
+        driver: str,
         *,
         is_test_database: bool | None = None,
-    ) -> str:
+    ):
         if is_test_database is None:
             is_test_database = self.use_test_by_default
 
-        db_path = self.path
+        database = self.database
         if is_test_database:
-            if self.test_path is None:
+            if self.test_database is None:
                 raise ValueError("Test database not specified")
-            db_path = self.test_path
+            database = self.test_database
 
-        if db_path is None or db_path == ":memory:":
-            return f"sqlite+{driver}:///:memory:"
+        return f"postgresql+{driver}://{self.user}:{self.password}@{self.host}:{self.port}/{database}"
 
-        # ensure directory exists for database file
-        db_file = Path(db_path)
-        if not db_file.parent.exists():
-            db_file.parent.mkdir(parents=True, exist_ok=True)
 
-        return f"sqlite+{driver}:///{db_file}"
+class ConfigRedis(BaseModel):
+    host: str
+    port: int = 6379
+    db: int = 0
+    username: str | None = None
+    password: str | None = None
+    ssl: bool = False
+    decode_responses: bool = False
+    max_connections: int | None = None
+    socket_timeout: float | None = None
+
+    def get_redis_url(self) -> str:
+        scheme = "rediss" if self.ssl else "redis"
+        auth = ""
+        if self.username and self.password:
+            auth = f"{self.username}:{self.password}@"
+        elif self.password:
+            auth = f":{self.password}@"
+        return f"{scheme}://{auth}{self.host}:{self.port}/{self.db}"
 
 
 class ConfigHack(BaseSettings):
@@ -52,7 +71,8 @@ class ConfigHack(BaseSettings):
         env_prefix="HACK__",
     )
 
-    sqlite: ConfigSQLite
+    postgres: ConfigPostgres
+    redis: ConfigRedis
 
 
 class ProviderConfig(Provider):
@@ -61,46 +81,29 @@ class ProviderConfig(Provider):
         return ConfigHack()  # type: ignore
 
     @provide(scope=Scope.APP)
-    def get_config_sqlite(
+    def get_config_postgres(
             self,
             config: ConfigHack,
-    ) -> ConfigSQLite:
-        return config.sqlite
+    ) -> ConfigPostgres:
+        return config.postgres
+
+    @provide(scope=Scope.APP)
+    def get_config_redis(
+            self,
+            config: ConfigHack,
+    ) -> ConfigRedis:
+        return config.redis
 
 
 class ProviderDatabase(Provider):
     @provide(scope=Scope.APP)
     def get_database_engine(
             self,
-            config: ConfigSQLite,
+            config: ConfigPostgres,
     ) -> AsyncEngine:
-
-        engine = create_async_engine(
-            config.get_sqlalchemy_url("aiosqlite"),
+        return create_async_engine(
+            config.get_sqlalchemy_url("psycopg"),
         )
-
-        # see https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#transactions-with-sqlite-and-the-sqlite3-driver
-
-        @event.listens_for(engine.sync_engine, "connect")
-        def do_connect(dbapi_connection, connection_record):
-            # disable aiosqlite's emitting of the BEGIN statement entirely.
-            dbapi_connection.isolation_level = None
-
-        @event.listens_for(engine.sync_engine, "begin")
-        def do_begin(conn):
-            # emit our own BEGIN.  aiosqlite still emits COMMIT/ROLLBACK correctly
-            conn.exec_driver_sql("BEGIN")
-
-        @event.listens_for(Engine, "connect")
-        def set_sqlite_pragma(
-                dbapi_connection: AsyncAdapt_aiosqlite_connection,
-                connection_record,
-        ):
-            cursor = dbapi_connection.cursor()
-            cursor.execute("PRAGMA foreign_keys=ON")
-            cursor.close()
-
-        return engine
 
     @provide(scope=Scope.SESSION)
     async def get_database_session(
@@ -111,4 +114,42 @@ class ProviderDatabase(Provider):
             engine,
             expire_on_commit=False,
         ) as session:
+            yield session
+
+
+class ProviderRedis(Provider):
+    @provide(scope=Scope.APP)
+    async def get_redis_client(
+            self,
+            config: ConfigRedis,
+    ) -> AsyncGenerator[AsyncRedis, None]:
+        client = AsyncRedis.from_url(
+            config.get_redis_url(),
+            decode_responses=config.decode_responses,
+            max_connections=config.max_connections,
+            socket_timeout=config.socket_timeout,
+            ssl=config.ssl,
+        )
+        try:
+            yield client
+        finally:
+            await client.close()
+            if client.connection_pool:
+                await client.connection_pool.disconnect()
+
+
+class ProviderTestDatabase(Provider):
+    def get_database_engine(
+            self,
+            config: ConfigPostgres,
+    ) -> Engine:
+        return create_engine(
+            config.get_sqlalchemy_url("psycopg"),
+        )
+
+    def get_database_session(
+            self,
+            engine: Engine,
+    ) -> Iterable[Session]:
+        with Session(engine) as session:
             yield session

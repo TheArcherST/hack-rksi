@@ -4,6 +4,21 @@ from hack.integration_tests.base import PatchedRequest
 _base_url = "http://rest-server"
 
 
+# ------------- ACCESS -------------
+
+def make_register():
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/register",
+    )
+
+def make_login():
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/login",
+    )
+
+
 # ---------- LEAD SOURCES ----------
 
 def make_create_lead_source() -> PatchedRequest:
