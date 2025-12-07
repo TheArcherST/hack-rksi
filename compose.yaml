@@ -1,4 +1,4 @@
-name: "hack-rksi"
+name: "${COMPOSE__NAME}"
 services:
 
   postgres:
