@@ -188,33 +188,3 @@ def make_inspect_appeals_distribution() -> PatchedRequest:
         method="GET",
         url=_base_url + "/inspect/appeals-distribution",
     )
-
-
-# ---------- CHECKS ----------
-
-def make_create_check() -> PatchedRequest:
-    return PatchedRequest(
-        method="POST",
-        url=_base_url + "/checks",
-    )
-
-
-def make_list_checks() -> PatchedRequest:
-    return PatchedRequest(
-        method="GET",
-        url=_base_url + "/checks",
-    )
-
-
-def make_get_check() -> PatchedRequest:
-    return PatchedRequest(
-        method="GET",
-        url=_base_url + "/checks/{check_id}",
-    )
-
-
-def make_update_check() -> PatchedRequest:
-    return PatchedRequest(
-        method="PATCH",
-        url=_base_url + "/checks/{check_id}",
-    )
