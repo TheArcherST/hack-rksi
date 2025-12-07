@@ -4,8 +4,14 @@ from fastapi import APIRouter, HTTPException
 
 from hack.core.services.access import AccessService, ErrorUnauthorized
 from hack.core.services.uow_ctl import UoWCtl
-from hack.rest_server.schemas.access import LoginCredentials, \
-    AuthorizationCredentials, Register
+from hack.rest_server.models import AuthorizedUser
+from hack.rest_server.schemas.access import (
+    LoginCredentialsDTO,
+    AuthorizationCredentialsDTO,
+    RegisterDTO,
+    ActiveLoginDTO,
+)
+
 
 router = APIRouter(
     prefix="",
@@ -20,7 +26,7 @@ router = APIRouter(
 async def register(
         access_service: FromDishka[AccessService],
         uow_ctl: FromDishka[UoWCtl],
-        payload: Register,
+        payload: RegisterDTO,
 ) -> None:
     await access_service.register(
         username=payload.username,
@@ -38,8 +44,8 @@ async def register(
 async def login(
         access_service: FromDishka[AccessService],
         uow_ctl: FromDishka[UoWCtl],
-        payload: LoginCredentials,
-) -> AuthorizationCredentials:
+        payload: LoginCredentialsDTO,
+) -> AuthorizationCredentialsDTO:
     try:
         login_session = await access_service.login(
             username=payload.username,
@@ -53,7 +59,18 @@ async def login(
         ) from e
 
     await uow_ctl.commit()
-    return AuthorizationCredentials(
+    return AuthorizationCredentialsDTO(
         login_session_uid=login_session.uid,
         login_session_token=login_session.token,
     )
+
+
+@router.get(
+    "/login",
+    response_model=ActiveLoginDTO,
+)
+@inject
+async def get_active_login(
+        authorized_user: FromDishka[AuthorizedUser],
+):
+    return authorized_user

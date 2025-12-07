@@ -19,6 +19,13 @@ def make_login():
     )
 
 
+def make_get_active_login():
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/login",
+    )
+
+
 # ---------- LEAD SOURCES ----------
 
 def make_create_lead_source() -> PatchedRequest:

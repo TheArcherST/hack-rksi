@@ -1,18 +1,22 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from .base import BaseDTO
 
 
-class LoginCredentials(BaseModel):
+class LoginCredentialsDTO(BaseDTO):
     username: str
     password: str
 
 
-class AuthorizationCredentials(BaseModel):
+class AuthorizationCredentialsDTO(BaseDTO):
     login_session_uid: UUID
     login_session_token: str
 
 
-class Register(BaseModel):
+class RegisterDTO(BaseDTO):
     username: str
     password: str
+
+
+class ActiveLoginDTO(BaseDTO):
+    username: str
