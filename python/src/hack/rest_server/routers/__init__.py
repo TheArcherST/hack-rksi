@@ -13,11 +13,11 @@ router = APIRouter()
 
 
 router.include_router(access.router)
-router.include_router(lead_sources.router)
-router.include_router(operators.router)
-router.include_router(lead_source_operators.router)
-router.include_router(appeals.router)
-router.include_router(inspect.router)
+router.include_router(lead_sources.router, include_in_schema=False)
+router.include_router(operators.router, include_in_schema=False)
+router.include_router(lead_source_operators.router, include_in_schema=False)
+router.include_router(appeals.router, include_in_schema=False)
+router.include_router(inspect.router, include_in_schema=False)
 
 
 __all__ = [
