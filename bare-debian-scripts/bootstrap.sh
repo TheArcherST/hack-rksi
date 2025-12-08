@@ -53,9 +53,9 @@ as_postgres() {
 
 echo ">>> Установка зависимостей через apt-get..."
 $SUDO apt-get update -y
+# python3 python3-venv python3-pip \
 $SUDO apt-get install -y \
   make \
-  # python3 python3-venv python3-pip \
   build-essential libpq-dev \
   postgresql postgresql-client \
   redis-server \
