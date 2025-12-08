@@ -147,9 +147,28 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install poetry
 
-echo ">>> poetry install..."
-poetry install --no-root --compile
-poetry install --only-root --compile
+echo ">>> Проверяю доступность PyPI перед poetry install..."
+if curl -sSf https://pypi.org/simple/ >/dev/null 2>&1; then
+  echo ">>> pypi.org доступен, пробую poetry install..."
+
+  if ! poetry install --no-root --compile; then
+    echo "!!! ВНИМАНИЕ: 'poetry install --no-root --compile' завершился с ошибкой."
+    echo "    Скорее всего, это временная проблема сети или ограничение окружения."
+    echo "    Позже можно зайти в каталог python/ и выполнить команду вручную."
+  fi
+
+  if ! poetry install --only-root --compile; then
+    echo "!!! ВНИМАНИЕ: 'poetry install --only-root --compile' завершился с ошибкой."
+    echo "    Позже можно зайти в каталог python/ и выполнить команду вручную."
+  fi
+else
+  echo "!!! ВНИМАНИЕ: pypi.org сейчас недоступен (curl не смог достучаться)."
+  echo "    Пропускаю 'poetry install'."
+  echo "    Когда появится сеть, зайди в каталог python/ и сделай:"
+  echo "      source .venv/bin/activate"
+  echo "      poetry install --no-root --compile"
+  echo "      poetry install --only-root --compile"
+fi
 
 deactivate
 cd "$ROOT_DIR"
