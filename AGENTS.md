@@ -4,15 +4,14 @@
 - `python/src/hack/rest_server`: FastAPI entrypoints, providers, and exception handlers.
 - `python/src/hack/core`: Domain services and shared models.
 - `python/src/hack/integration_tests`: Pytest suites exercising the running stack.
-- `python/alembic.ini` and `python/alembic-entrypoint.sh`: Migration config and entrypoint used in containers.
-- Root `compose.yaml`/`compose.override.yaml*`: Docker Compose stack (Postgres, Redis, REST API); `Makefile` wraps common workflows; copy `./.env.example` and `./python/.env.example` before running anything.
+- Domain related with appeals, leads and operators is REFERENCE DOMAIN (just reference for you, will not be included into release).
 
 ## Build, Test, and Development Commands
 - `make up`: Build images, start the stack, and run migrations.
 - `make run-migrations`: Apply Alembic migrations against the running Postgres.
-- `make generate-migrations m="001" msg="add users"`: Create an autogeneration revision (runs inside the Alembic tool container).
-- `make test` or `docker compose run --rm --build run-integration-tests`: Run integration tests inside the test container.
-- `docker compose logs -f`: Stream container logs for debugging.
+- `make generate-migrations m="Add users"`: Create an autogeneration revision (runs inside the Alembic tool container).
+- `make test`: Run integration tests inside the test container.
+- `docker compose logs rest-server -f`: Stream container logs for debugging.
 
 ## Coding Style & Naming Conventions
 - Python 3.12; 4-space indentation; keep lines ≤79 chars (enforced by `ruff`).
@@ -23,7 +22,7 @@
 ## Testing Guidelines
 - Tests live in `python/src/hack/integration_tests`; fixtures reside in `conftest.py`.
 - Target new endpoints/services with `test_*.py` cases; prefer deterministic data setup over relying on existing state.
-- Run `make test` before pushing; to scope locally, use `docker compose run --rm run-integration-tests -k "<pattern>"`.
+- Run `make test` before pushing; to scope locally, use `make test args='-k "<pattern>"'`.
 - If migrations change schema, add/adjust tests that cover the new behavior and ensure they pass in the containerized environment.
 
 ## Commit & Pull Request Guidelines
