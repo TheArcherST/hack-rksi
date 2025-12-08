@@ -194,9 +194,6 @@ start_rest_server() {
     fi
   fi
 
-  # shellcheck disable=SC1091
-  source .venv/bin/activate
-
   if [[ -f .env ]]; then
     set -a
     . .env

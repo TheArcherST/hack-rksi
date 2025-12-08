@@ -137,21 +137,12 @@ echo ">>> Настраиваем виртуальное окружение Pytho
 
 cd "$PY_DIR"
 
-if [[ ! -d .venv ]]; then
-  python3 -m venv .venv
-fi
-
-# shellcheck disable=SC1091
-source .venv/bin/activate
-
-pip install --upgrade pip
 pip install poetry
 
 echo ">>> poetry install..."
 poetry install --no-root --compile
 poetry install --only-root --compile
 
-deactivate
 cd "$ROOT_DIR"
 
 #######################################
@@ -188,7 +179,7 @@ cat > "$MAKEFILE_PATH" <<'EOF'
 # Локальные цели (без docker), с теми же именами, что и докерные
 
 alembic:
-	cd python && . .venv/bin/activate && alembic $(command)
+	cd python && alembic $(command)
 
 run-migrations:
 	make alembic command="upgrade head"
@@ -201,7 +192,7 @@ up:
 	make run-migrations
 
 test:
-	cd python && . .venv/bin/activate && pytest $(args)
+	cd python && pytest $(args)
 
 update:
 	git pull && make up && make test
