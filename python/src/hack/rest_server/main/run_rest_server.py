@@ -4,7 +4,12 @@ from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from hack.core.providers import ProviderConfig, ProviderDatabase
+from hack.core.providers import (
+    ProviderConfig,
+    ProviderDatabase,
+    ProviderRedis,
+)
+from hack.tasks.providers import ProviderBroker
 from hack.core.services.providers import ProviderServices
 from hack.rest_server import (
     exception_handlers,
@@ -17,6 +22,8 @@ def main():
     providers = (
         ProviderConfig(),
         ProviderDatabase(),
+        ProviderBroker(),
+        ProviderRedis(),
         ProviderServices(),
         ProviderServer(),
     )

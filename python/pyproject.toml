@@ -14,10 +14,11 @@ dependencies = [
     "ruff",
     "pytest",
     "deepdiff",
-    "redis (>=7.1.0,<8.0.0)",
+    "redis (<7)",
     "authx (>=1.4.3,<2.0.0)",
     "taskiq (>=0.12.1,<0.13.0)",
     "argon2-cffi (>=25.1.0,<26.0.0)",
+    "taskiq-redis (>=1.1.2,<2.0.0)",
 ]
 
 [build-system]

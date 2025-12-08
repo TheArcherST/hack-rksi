@@ -1,6 +1,5 @@
 name: "${COMPOSE__NAME}"
 services:
-
   postgres:
     image: postgres:17
     restart: unless-stopped
@@ -43,6 +42,20 @@ services:
     env_file: ./python/.env
     depends_on:
       postgres:
+        condition: service_healthy
+  taskiq-worker:
+    build: ./python
+    command: [
+      "taskiq", "worker",
+      "hack.tasks.brokers.redis:make_worker_broker",
+      "hack.tasks.tasks.allocate_operator",
+      "--ack-type", "when_saved",
+      "--no-propagate-errors",
+    ]
+    restart: unless-stopped
+    env_file: ./python/.env
+    depends_on:
+      redis:
         condition: service_healthy
   tool-alembic:
     profiles:
