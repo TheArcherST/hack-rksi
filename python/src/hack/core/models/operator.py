@@ -16,6 +16,7 @@ class Operator(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     status: Mapped[OperatorStatusEnum]
+    active_appeals: Mapped[int]
     active_appeals_limit: Mapped[int]
     created_at: Mapped[CreatedAt]
 

@@ -32,6 +32,7 @@ async def create_operator(
     operator = Operator(
         status=payload.status,
         active_appeals_limit=payload.active_appeals_limit,
+        active_appeals=0,
     )
     session.add(operator)
     await session.flush()

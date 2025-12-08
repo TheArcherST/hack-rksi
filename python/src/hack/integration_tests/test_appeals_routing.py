@@ -1,7 +1,11 @@
+from time import sleep
+
 from . import api_templates
 
 
-def test_appeals_routing_respects_weights_and_limits(client):
+def test_appeals_routing_respects_weights_and_limits(
+        client,
+):
     """
     Интеграционный тест роутинга обращений:
 
@@ -89,6 +93,10 @@ def test_appeals_routing_respects_weights_and_limits(client):
         assert r.status_code == 201
 
     # ---------- 5. Анализируем распределение по /appeals ----------
+
+    # ждём немного, чтобы задачи в очереди выполнились
+    sleep(1.5)
+
     req = api_templates.make_list_appeals()
     r = client.prepsend(req)
     assert r.status_code == 200

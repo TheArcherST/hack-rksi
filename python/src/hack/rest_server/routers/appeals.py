@@ -4,14 +4,12 @@ from fastapi import APIRouter, status, HTTPException
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from taskiq import AsyncBroker
 
 from hack.core.models import Appeal, Lead
 from hack.core.models.appeal import AppealStatusEnum
 from hack.core.services.uow_ctl import UoWCtl
-from hack.core.services.appeal_routing import (
-    AppealRoutingService,
-    NoAvailableOperatorError,
-)
+from hack.tasks.tasks.allocate_operator import allocate_operator
 from hack.rest_server.schemas.appeals import (
     AppealDTO,
     CreateAppealDTO,
@@ -31,10 +29,10 @@ router = APIRouter(
 )
 @inject
 async def create_appeal(
-    session: FromDishka[AsyncSession],
-    uow_ctl: FromDishka[UoWCtl],
-    routing_service: FromDishka[AppealRoutingService],
-    payload: CreateAppealDTO,
+        session: FromDishka[AsyncSession],
+        broker: FromDishka[AsyncBroker],
+        uow_ctl: FromDishka[UoWCtl],
+        payload: CreateAppealDTO,
 ) -> Appeal:
     stmt = (insert(Lead)
             .values(id=payload.lead_id)
@@ -49,16 +47,13 @@ async def create_appeal(
     session.add(appeal)
     await session.flush()
 
-    try:
-        operator = await routing_service.allocate_operator(
-            appeal=appeal,
-        )
-    except NoAvailableOperatorError:
-        operator = None
-
-    if operator is not None:
-        appeal.assigned_operator_id = operator.id
-        await session.flush()
+    await (allocate_operator
+           .kicker()
+           .with_broker(broker)
+           .kiq(appeal_id=appeal.id))
+    # note: if usecase interrupted between queueing allocation and commit,
+    #  task must retry several times to select appeal (to be pretty confident
+    #  that transaction is already commited) then reject
 
     await uow_ctl.commit()
     return appeal
