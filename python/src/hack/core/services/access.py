@@ -10,11 +10,20 @@ from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from hack.core.errors.access import ErrorUnauthorized, ErrorVerification, \
-    ErrorEmailAlreadyExists, ErrorRecoveryEmailNotFound, \
-    ErrorRecoveryTokenInvalid, ErrorRecoveryTokenExpired
-from hack.core.models import LoginSession, User, IssuedRegistration, \
-    IssuedLoginRecovery
+from hack.core.errors.access import (
+    ErrorUnauthorized,
+    ErrorVerification,
+    ErrorEmailAlreadyExists,
+    ErrorRecoveryEmailNotFound,
+    ErrorRecoveryTokenInvalid,
+    ErrorRecoveryTokenExpired,
+)
+from hack.core.models import (
+    LoginSession,
+    User,
+    IssuedRegistration,
+    IssuedLoginRecovery,
+)
 
 
 class AccessService:

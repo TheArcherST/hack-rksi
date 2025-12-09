@@ -40,7 +40,7 @@ class LoginRecoveryRequestDTO(BaseDTO):
 
 
 class IssuedLoginRecoveryDTO(BaseDTO):
-    token: UUID
+    pass
 
 
 class LoginRecoverySubmitDTO(BaseDTO):

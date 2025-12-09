@@ -46,6 +46,13 @@ def make_intercept_verification_code():
     )
 
 
+def make_intercept_recovery_token():
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/debug/intercept-recovery-token",
+    )
+
+
 def make_get_active_login():
     return PatchedRequest(
         method="GET",
