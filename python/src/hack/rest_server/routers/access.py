@@ -29,8 +29,9 @@ async def register(
         payload: RegisterDTO,
 ) -> None:
     await access_service.register(
-        username=payload.username,
+        email=payload.email,
         password=payload.password,
+        full_name=payload.full_name,
     )
     await uow_ctl.commit()
     return None
@@ -48,14 +49,14 @@ async def login(
 ) -> AuthorizationCredentialsDTO:
     try:
         login_session = await access_service.login(
-            username=payload.username,
+            email=payload.email,
             password=payload.password,
             user_agent="none",
         )
     except ErrorUnauthorized as e:
         raise HTTPException(
             status_code=401,
-            detail="Invalid username or password",
+            detail="Invalid email or password",
         ) from e
 
     await uow_ctl.commit()

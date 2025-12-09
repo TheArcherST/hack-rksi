@@ -10,6 +10,8 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(unique=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    full_name: Mapped[str] = mapped_column()
     password_hash: Mapped[str]
     is_system: Mapped[bool] = mapped_column(default=False)
 

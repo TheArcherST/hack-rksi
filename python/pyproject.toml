@@ -5,7 +5,7 @@ requires-python = ">=3.12, <4.0"
 dependencies = [
     "dishka",
     "sqlalchemy",
-    "pydantic",
+    "pydantic[email] (>=2.12.5,<3.0.0)",
     "pydantic-settings",
     "fastapi",
     "uvicorn",
