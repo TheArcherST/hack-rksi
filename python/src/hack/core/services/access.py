@@ -185,6 +185,9 @@ class AccessService:
         ):
             raise ErrorUnauthorized
 
+        if login_session.user.deleted_at is not None:
+            raise ErrorUnauthorized
+
         return login_session
 
     async def _identify_user(
@@ -192,7 +195,8 @@ class AccessService:
             email: str,
     ) -> User | None:
         stmt = (select(User)
-                .where(User.email == email))
+                .where(User.email == email)
+                .where(User.deleted_at.is_(None)))
         user = await self.orm_session.scalar(stmt)
         return user
 

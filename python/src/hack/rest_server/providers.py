@@ -8,7 +8,12 @@ from starlette.testclient import TestClient
 
 from hack.core.services.access import AccessService
 from hack.core.errors.access import ErrorUnauthorized
-from hack.rest_server.models import AuthorizedUser, CurrentLoginSession
+from hack.rest_server.models import (
+    AuthorizedUser,
+    CurrentLoginSession,
+    AuthorizedAdministrator,
+)
+from hack.core.models.user import UserRoleEnum
 
 
 class ProviderServer(Provider):
@@ -53,7 +58,28 @@ class ProviderServer(Provider):
             self,
             current_login_session: CurrentLoginSession,
     ) -> AuthorizedUser:
-        return AuthorizedUser(current_login_session.user)
+        user = current_login_session.user
+        if user.deleted_at is not None:
+            raise HTTPException(
+                status_code=403,
+                detail="User deleted",
+            )
+        return AuthorizedUser(user)
+
+    @provide(scope=Scope.REQUEST)
+    async def get_authorized_administrator(
+            self,
+            authorized_user: AuthorizedUser,
+    ) -> AuthorizedAdministrator:
+        if (
+            authorized_user.role != UserRoleEnum.ADMINISTRATOR
+            and not authorized_user.is_system
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Administrator role required",
+            )
+        return AuthorizedAdministrator(authorized_user)
 
     get_access_service = provide(
         AccessService,
