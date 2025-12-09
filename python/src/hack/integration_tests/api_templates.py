@@ -18,10 +18,10 @@ def make_login():
         url=_base_url + "/login",
     )
 
-def make_register_verification():
+def make_verification():
     return PatchedRequest(
         method="POST",
-        url=_base_url + "/register/verification",
+        url=_base_url + "/verification",
     )
 
 
