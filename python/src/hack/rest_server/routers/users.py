@@ -6,9 +6,8 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from taskiq import AsyncBroker
 
-from hack.core.models import User
+from hack.core.models import User, AdminSetPasswordNotification
 from hack.core.models.user import UserRoleEnum, UserStatusEnum
 from hack.core.services.uow_ctl import UoWCtl
 from hack.rest_server.models import AuthorizedAdministrator
@@ -17,7 +16,7 @@ from hack.rest_server.schemas.users import (
     UpdateUserDTO,
     ResetUserPasswordDTO,
 )
-from hack.tasks.tasks.send_email import send_email
+from hack.core.services.notification import NotificationService
 
 
 router = APIRouter(
@@ -153,7 +152,7 @@ async def soft_delete_user(
 @inject
 async def reset_user_password(
     session: FromDishka[AsyncSession],
-    broker: FromDishka[AsyncBroker],
+    notification_service: FromDishka[NotificationService],
     ph: FromDishka[PasswordHasher],
     uow_ctl: FromDishka[UoWCtl],
     authorized_administrator: FromDishka[AuthorizedAdministrator],
@@ -170,20 +169,18 @@ async def reset_user_password(
 
     user.password_hash = ph.hash(payload.password)
     await session.flush()
-    await uow_ctl.commit()
 
     if payload.send_email:
-        await (send_email
-               .kicker()
-               .with_broker(broker)
-               .kiq(
-                   to_email=user.email,
-                   subject="Your password was reset",
-                   content=(
-                       "Your password was reset by an administrator.\n"
-                       f"New temporary password: {payload.password}\n\n"
-                       "Please log in and change it."
-                   ),
-               ))
+        await notification_service.notify_about_event(
+            AdminSetPasswordNotification(
+                email=user.email,
+                full_name=user.full_name,
+                temporary_password=payload.password,
+                admin_name=authorized_administrator.full_name,
+            ),
+            recipients_emails=[user.email],
+            recipients_ids=[user.id],
+        )
 
+    await uow_ctl.commit()
     return None

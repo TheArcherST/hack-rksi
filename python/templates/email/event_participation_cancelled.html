@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include "_event_details.html" %}
+<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+  {{ participant_name }} отменил участие в событии. Актуальный список участников обновлен.
+</p>
+{% endblock %}

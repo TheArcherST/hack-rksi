@@ -21,12 +21,16 @@ async def send_email(
         to_email: str,
         subject: str,
         content: str,
+        html_content: str | None = None,
 ) -> None:
     message = EmailMessage()
     message["To"] = to_email
     message["Subject"] = subject
     message["From"] = email_config.from_email
+
     message.set_content(content)
+    if html_content:
+        message.add_alternative(html_content, subtype="html")
 
     task_id = context.message.task_id
     if email_config.backend == "console":

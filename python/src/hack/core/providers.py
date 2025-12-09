@@ -86,6 +86,11 @@ class ConfigS3(BaseModel):
     public_base_url: str | None = None
 
 
+class ConfigTemplates(BaseModel):
+    recovery_url_template: str = "http://localhost/recovery?token={token}"
+    event_card_url_template: str = "http://localhost/events/cards/{event_id}"
+
+
 class ConfigHack(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
@@ -98,7 +103,7 @@ class ConfigHack(BaseSettings):
     redis: ConfigRedis
     email: ConfigEmail = ConfigEmail()
     s3: ConfigS3
-    recovery_url_template: str = "http://localhost/recovery?token={token}"
+    templates: ConfigTemplates = ConfigTemplates()
 
 
 class ProviderConfig(Provider):
@@ -133,6 +138,13 @@ class ProviderConfig(Provider):
             config: ConfigHack,
     ) -> ConfigS3:
         return config.s3
+
+    @provide(scope=Scope.APP)
+    def get_config_templates(
+            self,
+            config: ConfigHack,
+    ) -> ConfigTemplates:
+        return config.templates
 
 
 class ProviderDatabase(Provider):

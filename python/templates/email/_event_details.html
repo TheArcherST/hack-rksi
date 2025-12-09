@@ -1,0 +1,24 @@
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:16px 0 20px 0;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
+  <tr>
+    <td style="padding:14px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#374151;">
+      <div style="margin-bottom:6px;font-weight:600;">
+        {{ event_name }}
+      </div>
+      {% if event_date %}
+      <div style="margin-bottom:4px;">
+        📅 {{ event_date }}{% if event_time %} в {{ event_time }}{% endif %}
+      </div>
+      {% endif %}
+      {% if location %}
+      <div style="margin-bottom:4px;">
+        📍 {{ location }}
+      </div>
+      {% endif %}
+      {% if participants_count is not none %}
+      <div style="color:#6b7280;">
+        👥 Участников: {{ participants_count }}
+      </div>
+      {% endif %}
+    </td>
+  </tr>
+</table>

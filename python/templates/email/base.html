@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ subject }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% if preheader %}
+  <span style="display:none;visibility:hidden;mso-hide:all;">
+    {{ preheader }}
+  </span>
+  {% endif %}
+</head>
+<body style="margin:0;padding:0;background:#f5f6fa;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f6fa;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;background:#ffffff;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,0.06);overflow:hidden;">
+          <tr>
+            <td style="padding:20px 24px 16px 24px;border-bottom:1px solid #f0f2f5;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:18px;font-weight:700;color:#111827;">
+                    {{ brand_name or "TTK Афиша" }}
+                  </td>
+                  <td align="right" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;color:#9ca3af;">
+                    Электронная афиша
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="height:3px;background:#e11d2f;"></td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 24px 8px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827;">
+              <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;line-height:1.4;">
+                {{ title }}
+              </h1>
+
+              {% if greeting_name %}
+              <p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                Здравствуйте, {{ greeting_name }}!
+              </p>
+              {% endif %}
+
+              {% if lead %}
+              <p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#4b5563;">
+                {{ lead }}
+              </p>
+              {% endif %}
+
+              {% block content %}{% endblock %}
+
+              {% if cta_url %}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="margin:0 0 16px 0;">
+                <tr>
+                  <td bgcolor="#e11d2f" style="border-radius:999px;">
+                    <a href="{{ cta_url }}"
+                       style="display:inline-block;padding:10px 22px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;font-weight:500;color:#ffffff;text-decoration:none;border-radius:999px;">
+                      {{ cta_label or "Перейти" }}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="clear:both;"></div>
+
+              <p style="margin:12px 0 0 0;font-size:12px;line-height:1.6;color:#9ca3af;">
+                Если кнопка не работает, скопируйте и вставьте ссылку в браузер:<br />
+                <span style="color:#6b7280;">{{ cta_url }}</span>
+              </p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 24px 20px 24px;border-top:1px solid #f0f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;color:#9ca3af;text-align:left;">
+              {{ footer_note }}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

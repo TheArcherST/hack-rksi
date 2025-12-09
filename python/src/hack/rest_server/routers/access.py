@@ -1,9 +1,10 @@
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException
-from taskiq import AsyncBroker
 
-from hack.core.models import IssuedRegistration, IssuedLoginRecovery
+from hack.core.models import IssuedRegistration, IssuedLoginRecovery, \
+    RegistrationConfirmCodeEvent, RegistrationWelcomeEvent, \
+    PasswordResetLinkEvent, PasswordChangedEvent
 from hack.core.services.access import (
     AccessService,
 )
@@ -15,6 +16,7 @@ from hack.core.errors.access import (
     ErrorRecoveryTokenInvalid,
     ErrorRecoveryTokenExpired,
 )
+from hack.core.services.notification import NotificationService
 from hack.core.services.uow_ctl import UoWCtl
 from hack.core.providers import ConfigHack
 from hack.rest_server.models import AuthorizedUser
@@ -27,7 +29,6 @@ from hack.rest_server.schemas.access import (
     LoginRecoveryRequestDTO, IssuedLoginRecoveryDTO,
     LoginRecoverySubmitDTO,
 )
-from hack.tasks.tasks.send_email import send_email
 
 
 router = APIRouter(
@@ -43,8 +44,8 @@ router = APIRouter(
 @inject
 async def register(
         access_service: FromDishka[AccessService],
+        notification_service: FromDishka[NotificationService],
         uow_ctl: FromDishka[UoWCtl],
-        broker: FromDishka[AsyncBroker],
         payload: RegisterDTO,
 ) -> IssuedRegistration:
     try:
@@ -60,19 +61,14 @@ async def register(
         ) from e
 
     await uow_ctl.commit()
-    await (send_email
-           .kicker()
-           .with_broker(broker)
-           .kiq(
-               to_email=payload.email,
-               subject="Verify your Hack account",
-               content=(
-                   f"Hello, {payload.full_name}!\n\n"
-                   "Here is your verification code:\n"
-                   f"{issued_registration.verification_code}\n\n"
-                   "Enter this code to verify your account."
-               ),
-           ))
+
+    await notification_service.notify_about_event(
+        RegistrationConfirmCodeEvent(
+            full_name=payload.full_name,
+            verification_code=issued_registration.verification_code,
+        ),
+        recipients_emails=[payload.email],
+    )
     return issued_registration
 
 
@@ -83,7 +79,7 @@ async def register(
 @inject
 async def verify_registration(
         access_service: FromDishka[AccessService],
-        broker: FromDishka[AsyncBroker],
+        notification_service: FromDishka[NotificationService],
         uow_ctl: FromDishka[UoWCtl],
         payload: VerifyRegistrationDTO,
 ) -> None:
@@ -99,16 +95,13 @@ async def verify_registration(
         ) from e
 
     await uow_ctl.commit()
-    await (send_email
-           .kicker()
-           .with_broker(broker)
-           .kiq(
-               to_email=user.email,
-               subject="Registration completed",
-               content=(
-                   f"Welcome email",
-               ),
-           ))
+    await notification_service.notify_about_event(
+        RegistrationWelcomeEvent(
+            full_name=user.full_name,
+        ),
+        recipients_emails=[user.email],
+        recipients_ids=[user.id],
+    )
 
     return None
 
@@ -151,7 +144,7 @@ async def login(
 async def issue_login_recovery(
         access_service: FromDishka[AccessService],
         uow_ctl: FromDishka[UoWCtl],
-        broker: FromDishka[AsyncBroker],
+        notification_service: FromDishka[NotificationService],
         config: FromDishka[ConfigHack],
         payload: LoginRecoveryRequestDTO,
 ) -> IssuedLoginRecovery:
@@ -167,21 +160,16 @@ async def issue_login_recovery(
 
     await uow_ctl.commit()
 
-    recovery_url = config.recovery_url_template.format(
+    recovery_url = config.templates.recovery_url_template.format(
         token=issued_recovery.token,
     )
-    await (send_email
-           .kicker()
-           .with_broker(broker)
-           .kiq(
-               to_email=payload.email,
-               subject="Reset your password",
-               content=(
-                   "Password reset was requested for your account.\n\n"
-                   f"Use this link to set a new password:\n{recovery_url}\n\n"
-                   "The link will expire in 24 hours."
-               ),
-           ))
+    await notification_service.notify_about_event(
+        PasswordResetLinkEvent(
+            full_name=None,
+            reset_url=recovery_url,
+        ),
+        recipients_emails=[payload.email],
+    )
     return issued_recovery
 
 
@@ -193,7 +181,7 @@ async def issue_login_recovery(
 async def submit_login_recovery(
         access_service: FromDishka[AccessService],
         uow_ctl: FromDishka[UoWCtl],
-        broker: FromDishka[AsyncBroker],
+        notification_service: FromDishka[NotificationService],
         payload: LoginRecoverySubmitDTO,
 ) -> None:
     try:
@@ -213,14 +201,13 @@ async def submit_login_recovery(
         ) from e
 
     await uow_ctl.commit()
-    await (send_email
-           .kicker()
-           .with_broker(broker)
-           .kiq(
-               to_email=user.email,
-               subject="Password changed",
-               content="Your password has been changed successfully.",
-           ))
+    await notification_service.notify_about_event(
+        PasswordChangedEvent(
+            full_name=user.full_name,
+        ),
+        recipients_emails=[user.email],
+        recipients_ids=[user.id],
+    )
     return None
 
 

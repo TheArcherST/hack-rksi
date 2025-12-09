@@ -7,9 +7,19 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from hack.core.models import Event, EventParticipant, User
+from hack.core.models import (
+    Event,
+    EventCreatedNotification,
+    EventParticipant,
+    EventParticipationCancelledNotification,
+    EventParticipationConfirmedNotification,
+    EventUpdatedNotification,
+    User,
+)
+from hack.core.models.user import UserRoleEnum
 from hack.core.models.event import EventStatusEnum
 from hack.core.services.uow_ctl import UoWCtl
+from hack.core.services.notification import NotificationService
 from hack.rest_server.models import AuthorizedAdministrator, AuthorizedUser
 from hack.rest_server.schemas.events import (
     EventDTO,
@@ -100,6 +110,7 @@ async def create_event(
     session: FromDishka[AsyncSession],
     uow_ctl: FromDishka[UoWCtl],
     authorized_administrator: FromDishka[AuthorizedAdministrator],
+    notification_service: FromDishka[NotificationService],
     payload: CreateEventDTO,
 ) -> Event:
     participant_ids = list(dict.fromkeys(payload.participants_ids))
@@ -138,6 +149,17 @@ async def create_event(
         for user_id in participant_ids
     ]
     await session.flush()
+    if participant_ids:
+        await notification_service.notify_about_event(
+            EventCreatedNotification(
+                event_name=event.name,
+                starts_at=event.starts_at,
+                location=event.location,
+                event_id=event.id,
+                participants_count=len(participant_ids),
+            ),
+            recipients_ids=participant_ids,
+        )
     await uow_ctl.commit()
     return event
 
@@ -213,6 +235,7 @@ async def update_event(
     session: FromDishka[AsyncSession],
     uow_ctl: FromDishka[UoWCtl],
     authorized_administrator: FromDishka[AuthorizedAdministrator],
+    notification_service: FromDishka[NotificationService],
     event_id: int,
     payload: UpdateEventDTO,
 ) -> Event:
@@ -321,6 +344,21 @@ async def update_event(
         )
 
     await session.flush()
+    participant_user_ids = [
+        p.user_id for p in event.participants
+        if p.status == EventParticipant.ParticipationStatusEnum.PARTICIPATING
+    ]
+    if participant_user_ids:
+        await notification_service.notify_about_event(
+            EventUpdatedNotification(
+                event_name=event.name,
+                starts_at=event.starts_at,
+                location=event.location,
+                event_id=event.id,
+                participants_count=len(participant_user_ids),
+            ),
+            recipients_ids=participant_user_ids,
+        )
     await uow_ctl.commit()
     return event
 
@@ -334,10 +372,13 @@ async def update_my_participation(
     session: FromDishka[AsyncSession],
     uow_ctl: FromDishka[UoWCtl],
     authorized_user: FromDishka[AuthorizedUser],
+    notification_service: FromDishka[NotificationService],
     event_id: int,
     payload: UpdateMyParticipationDTO,
 ) -> None:
-    stmt_event = select(Event).where(Event.id == event_id)
+    stmt_event = (select(Event)
+                  .where(Event.id == event_id)
+                  .options(selectinload(Event.participants)))
     event = await session.scalar(stmt_event)
     if event is None or event.rejected_at is not None:
         raise HTTPException(
@@ -350,15 +391,26 @@ async def update_my_participation(
         .where(EventParticipant.event_id == event_id)
         .where(EventParticipant.user_id == authorized_user.id)
     )
+    original_status = participant.status if participant else None
 
     if payload.status == ParticipationStatusEnum.NONE:
         if participant is not None:
             await session.delete(participant)
         await session.flush()
+        send_cancel = original_status == (
+            EventParticipant.ParticipationStatusEnum.PARTICIPATING
+        )
+        if send_cancel:
+            await _notify_participation_cancelled(
+                session,
+                notification_service,
+                event,
+                authorized_user.full_name,
+            )
         await uow_ctl.commit()
         return None
 
-    if payload.status == ParticipationStatusEnum.PARTICIPATING:
+    if payload.status is ParticipationStatusEnum.PARTICIPATING:
         ends_at = _normalize_datetime(event.ends_at)
         if ends_at <= datetime.now(tz=timezone.utc):
             raise HTTPException(
@@ -366,7 +418,7 @@ async def update_my_participation(
                 detail="Event already finished",
             )
 
-    if payload.status == ParticipationStatusEnum.PARTICIPATING:
+    if payload.status is ParticipationStatusEnum.PARTICIPATING:
         stmt_count = (
             select(func.count(EventParticipant.id))
             .where(EventParticipant.event_id == event_id)
@@ -403,5 +455,83 @@ async def update_my_participation(
         participant.status = target_status
 
     await session.flush()
+    if target_status == EventParticipant.ParticipationStatusEnum.PARTICIPATING:
+        await _notify_participation_confirmed(
+            session,
+            notification_service,
+            event,
+            authorized_user.full_name,
+        )
+    elif (
+        original_status
+        == EventParticipant.ParticipationStatusEnum.PARTICIPATING
+    ):
+        await _notify_participation_cancelled(
+            session,
+            notification_service,
+            event,
+            authorized_user.full_name,
+        )
     await uow_ctl.commit()
     return None
+
+
+async def _load_admin_ids(session: AsyncSession) -> list[int]:
+    stmt = (
+        select(User.id)
+        .where(User.role == UserRoleEnum.ADMINISTRATOR)
+        .where(User.deleted_at.is_(None))
+    )
+    return list(await session.scalars(stmt))
+
+
+async def _notify_participation_confirmed(
+        session: AsyncSession,
+        notification_service: NotificationService,
+        event: Event,
+        participant_name: str | None,
+) -> None:
+    admin_ids = await _load_admin_ids(session)
+    if not admin_ids:
+        return
+    await notification_service.notify_about_event(
+        EventParticipationConfirmedNotification(
+            event_name=event.name,
+            starts_at=event.starts_at,
+            location=event.location,
+            event_id=event.id,
+            participants_count=_count_participating(event),
+            participant_name=participant_name or "Участник",
+        ),
+        recipients_ids=admin_ids,
+    )
+
+
+async def _notify_participation_cancelled(
+        session: AsyncSession,
+        notification_service: NotificationService,
+        event: Event,
+        participant_name: str | None,
+) -> None:
+    admin_ids = await _load_admin_ids(session)
+    if not admin_ids:
+        return
+    await notification_service.notify_about_event(
+        EventParticipationCancelledNotification(
+            event_name=event.name,
+            starts_at=event.starts_at,
+            location=event.location,
+            event_id=event.id,
+            participants_count=_count_participating(event),
+            participant_name=participant_name or "Участник",
+        ),
+        recipients_ids=admin_ids,
+    )
+
+
+def _count_participating(event: Event) -> int:
+    return sum(
+        1
+        for p in event.participants
+        if p.status == EventParticipant.ParticipationStatusEnum.PARTICIPATING
+    )
