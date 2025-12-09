@@ -42,6 +42,11 @@ async def send_email(
         )
         return
 
+    if to_email.endswith("@example.com"):
+        logger.debug(f"Skip sending email to {to_email} because this email "
+                     f"identified as stub email")
+        return
+
     await aiosmtplib.send(
         message,
         hostname=email_config.host,

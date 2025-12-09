@@ -157,7 +157,7 @@ class EmailFactory:
             event,
             "Вы приглашены на новое событие.",
         )
-        ctx = self._event_context(event)
+        ctx = self._event_context(event, is_administrative_context=False)
         ctx.update({
             "title": subject,
             "lead": "Вы приглашены на новое событие.",
@@ -175,7 +175,7 @@ class EmailFactory:
             event,
             summary,
         )
-        ctx = self._event_context(event)
+        ctx = self._event_context(event, is_administrative_context=False)
         ctx.update({
             "title": subject,
             "lead": summary,
@@ -194,7 +194,7 @@ class EmailFactory:
             event,
             f"Напоминание: событие начнется через {event.hours_before} часов.",
         )
-        ctx = self._event_context(event)
+        ctx = self._event_context(event, is_administrative_context=False)
         ctx.update({
             "title": subject,
             "lead": (
@@ -218,7 +218,7 @@ class EmailFactory:
             event,
             f"{event.participant_name} присоединился к событию.",
         )
-        ctx = self._event_context(event)
+        ctx = self._event_context(event, is_administrative_context=True)
         ctx.update({
             "title": subject,
             "lead": f"{event.participant_name} присоединился к событию.",
@@ -244,7 +244,7 @@ class EmailFactory:
             event,
             f"{event.participant_name} отменил участие в событии.",
         )
-        ctx = self._event_context(event)
+        ctx = self._event_context(event, is_administrative_context=True)
         ctx.update({
             "title": subject,
             "lead": (
@@ -316,15 +316,17 @@ class EmailFactory:
                 | EventParticipationConfirmedNotification
                 | EventParticipationCancelledNotification
             ),
+            is_administrative_context: bool,
     ) -> dict[str, Any]:
         date_text, time_text = self._format_datetime(event.starts_at)
         cta_url = None
-        if getattr(event, "event_url", None):
-            cta_url = str(event.event_url)
-        elif event.event_id is not None:
-            cta_url = self._config_templates.event_card_url_template.format(
-                event_id=event.event_id,
+        if event.event_id is not None:
+            template = (
+                self._config_templates.event_url_template
+                if is_administrative_context
+                else self._config_templates.event_card_url_template
             )
+            cta_url = template.format(event_id=event.event_id)
         return {
             "greeting_name": event.recipient_name,
             "event_name": event.event_name,

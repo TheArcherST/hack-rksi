@@ -89,6 +89,7 @@ class ConfigS3(BaseModel):
 class ConfigTemplates(BaseModel):
     recovery_url_template: str = "http://localhost/recovery?token={token}"
     event_card_url_template: str = "http://localhost/events/cards/{event_id}"
+    event_url_template: str = "http://localhost/events/{event_id}"
 
 
 class ConfigHack(BaseSettings):

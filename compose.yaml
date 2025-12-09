@@ -48,7 +48,6 @@ services:
     command: [
       "taskiq", "worker",
       "hack.tasks.brokers.redis:make_worker_broker",
-      "hack.tasks.tasks.allocate_operator",
       "hack.tasks.tasks.send_email",
       "--ack-type", "when_saved",
       "--no-propagate-errors",

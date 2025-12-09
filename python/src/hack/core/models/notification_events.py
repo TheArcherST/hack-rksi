@@ -60,7 +60,6 @@ class EventNotificationBase(NotificationEventBase):
     starts_at: datetime
     location: str | None = None
     event_id: int | None = None
-    event_url: AnyUrl | str | None = None
     recipient_name: str | None = None
     participants_count: int | None = None
 

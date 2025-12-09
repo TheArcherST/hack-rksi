@@ -19,6 +19,7 @@ from hack.core.providers import (
     ProviderConfig,
     ConfigRedis,
 )
+from hack.tasks.providers import ProviderBroker
 
 
 class DishkaFormatter(ProxyFormatter):
@@ -46,6 +47,7 @@ def make_worker_broker():
     providers = (
         ProviderConfig(),
         ProviderDatabase(),
+        ProviderBroker(),
         ProviderServices(),
         NoAuthorizedUser(),
         TaskiqProvider(),
