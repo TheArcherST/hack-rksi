@@ -13,6 +13,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True)
     full_name: Mapped[str] = mapped_column()
     password_hash: Mapped[str]
+    is_verified: Mapped[bool] = mapped_column(default=False)
+    verification_code: Mapped[int | None] = mapped_column()
     is_system: Mapped[bool] = mapped_column(default=False)
 
     created_at: Mapped[CreatedAt]

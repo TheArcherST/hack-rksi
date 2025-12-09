@@ -1,7 +1,8 @@
 from collections.abc import AsyncGenerator, Iterable
+from typing import Literal
 
 from dishka import Provider, Scope, provide
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import (
@@ -64,6 +65,18 @@ class ConfigRedis(BaseModel):
         return f"{scheme}://{auth}{self.host}:{self.port}/{self.db}"
 
 
+class ConfigEmail(BaseModel):
+    backend: Literal["smtp", "console"] = "console"
+    host: str = "localhost"
+    port: int = 25
+    username: str | None = None
+    password: str | None = None
+    from_email: EmailStr = "no-reply@example.com"
+    start_tls: bool = False
+    use_tls: bool = False
+    timeout: float = 5.0
+
+
 class ConfigHack(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
@@ -73,6 +86,7 @@ class ConfigHack(BaseSettings):
 
     postgres: ConfigPostgres
     redis: ConfigRedis
+    email: ConfigEmail = ConfigEmail()
 
 
 class ProviderConfig(Provider):
@@ -93,6 +107,13 @@ class ProviderConfig(Provider):
             config: ConfigHack,
     ) -> ConfigRedis:
         return config.redis
+
+    @provide(scope=Scope.APP)
+    def get_config_email(
+            self,
+            config: ConfigHack,
+    ) -> ConfigEmail:
+        return config.email
 
 
 class ProviderDatabase(Provider):

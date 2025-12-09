@@ -7,15 +7,8 @@ from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from hack.core.errors.access import ErrorUnauthorized
 from hack.core.models import LoginSession, User
-
-
-class ServiceAccessError(Exception):
-    pass
-
-
-class ErrorUnauthorized(ServiceAccessError):
-    pass
 
 
 class AccessService:
