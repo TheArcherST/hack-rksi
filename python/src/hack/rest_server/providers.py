@@ -6,7 +6,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.requests import Request
 from starlette.testclient import TestClient
 
-from hack.core.services.access import AccessService, ErrorUnauthorized
+from hack.core.services.access import AccessService
+from hack.core.errors.access import ErrorUnauthorized
 from hack.rest_server.models import AuthorizedUser, CurrentLoginSession
 
 
