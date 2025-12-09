@@ -38,35 +38,13 @@ def test_register_rejects_invalid_email(client):
     assert "email" in error.get("msg", "").lower()
 
 
-def test_register_verification_rejects_invalid_code(client):
-    req = api_templates.make_register()
-    val_email = f"test_user-{uuid4()}@example.com"
+def test_register_verification_rejects_invalid_code(authed_client):
+    req = api_templates.make_verification()
     req.json = {
-        "email": val_email,
-        "full_name": "sample",
-        "password": "secret",
-    }
-    r = client.prepsend(req)
-    assert r.status_code == 201
-
-    req = api_templates.make_register_verification()
-    req.json = {
-        "email": val_email,
         "code": 111111,
     }
 
-    r = client.prepsend(req)
-    assert r.status_code == 400
-
-
-def test_register_verification_rejects_unknown_email(client):
-    req = api_templates.make_register_verification()
-    req.json = {
-        "email": f"missing-{uuid4()}@example.com",
-        "code": 111111,
-    }
-
-    r = client.prepsend(req)
+    r = authed_client.prepsend(req)
     assert r.status_code == 400
 
 

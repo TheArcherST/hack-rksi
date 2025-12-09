@@ -7,7 +7,6 @@ from hack.core.services.access import (
     AccessService,
 )
 from hack.core.errors.access import ErrorUnauthorized
-from hack.core.errors.verification import ErrorVerification
 from hack.core.services.verification import VerificationService
 from hack.core.services.uow_ctl import UoWCtl
 from hack.rest_server.models import AuthorizedUser
@@ -15,7 +14,6 @@ from hack.rest_server.schemas.access import (
     LoginCredentialsDTO,
     AuthorizationCredentialsDTO,
     RegisterDTO,
-    RegisterVerificationDTO,
     ActiveLoginDTO,
 )
 from hack.tasks.tasks.send_email import send_email
@@ -58,31 +56,6 @@ async def register(
                    "Enter this code to verify your account."
                ),
            ))
-    return None
-
-
-@router.post(
-    "/register/verification",
-    status_code=204,
-)
-@inject
-async def verify_registration(
-        verification_service: FromDishka[VerificationService],
-        uow_ctl: FromDishka[UoWCtl],
-        payload: RegisterVerificationDTO,
-) -> None:
-    try:
-        await verification_service.verify_by_code(
-            email=payload.email,
-            code=payload.code,
-        )
-    except ErrorVerification as e:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid verification code",
-        ) from e
-
-    await uow_ctl.commit()
     return None
 
 

@@ -21,11 +21,6 @@ class RegisterDTO(BaseDTO):
     full_name: str
 
 
-class RegisterVerificationDTO(BaseDTO):
-    email: EmailStr
-    code: int
-
-
 class ActiveLoginDTO(BaseDTO):
     email: EmailStr
     full_name: str
