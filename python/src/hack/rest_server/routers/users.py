@@ -120,6 +120,8 @@ async def update_user(
         user.username = payload.email
     if payload.full_name:
         user.full_name = payload.full_name
+    if payload.deleted_at is None:  # it's possible to undelete only
+        user.deleted_at = payload.deleted_at
 
     await session.flush()
     await uow_ctl.commit()

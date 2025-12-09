@@ -22,6 +22,7 @@ class UpdateUserDTO(BaseDTO):
     role: UserRoleEnum | None = None
     email: EmailStr | None = None
     full_name: str | None = None
+    deleted_at: datetime | None = None
 
 
 class ResetUserPasswordDTO(BaseDTO):
