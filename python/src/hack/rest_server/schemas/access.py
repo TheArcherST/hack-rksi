@@ -1,10 +1,12 @@
 from uuid import UUID
 
+from pydantic import EmailStr
+
 from .base import BaseDTO
 
 
 class LoginCredentialsDTO(BaseDTO):
-    username: str
+    email: EmailStr
     password: str
 
 
@@ -14,9 +16,11 @@ class AuthorizationCredentialsDTO(BaseDTO):
 
 
 class RegisterDTO(BaseDTO):
-    username: str
+    email: EmailStr
     password: str
+    full_name: str
 
 
 class ActiveLoginDTO(BaseDTO):
-    username: str
+    email: EmailStr
+    full_name: str

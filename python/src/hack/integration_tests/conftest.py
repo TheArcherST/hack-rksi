@@ -30,18 +30,20 @@ def client() -> PatchedSession:
 def authed_client() -> PatchedSession:
     client = PatchedSession()
     req = api_templates.make_register()
-    val_username = f"test_user-{uuid4()}"
+    val_email = f"test_user-{uuid4()}@example.com"
     val_password = "test_user_password"
     req.json = {
-        "username": val_username,
+        "email": val_email,
         "password": val_password,
+        "full_name": "sample",
     }
     r = client.prepsend(req)
     assert r.status_code == 201
     req = api_templates.make_login()
     req.json = {
-        "username": val_username,
+        "email": val_email,
         "password": val_password,
+        "full_name": "sample",
     }
     r = client.prepsend(req)
     assert r.status_code == 201

@@ -3,6 +3,7 @@ from uuid import UUID
 
 from argon2 import PasswordHasher
 from argon2 import exceptions as argon2_exceptions
+from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,13 +29,16 @@ class AccessService:
 
     async def register(
             self,
-            username: str,
+            email: EmailStr,
             password: str,
+            full_name: str
     ) -> User:
         password_hash = self.ph.hash(password)
         user = User(
-            username=username,
+            username=email,
+            email=email,
             password_hash=password_hash,
+            full_name=full_name,
         )
         self.orm_session.add(user)
         await self.orm_session.flush()
@@ -43,7 +47,7 @@ class AccessService:
 
     async def login(
             self,
-            username: str,
+            email: str,
             password: str,
             user_agent: str | None,
     ) -> LoginSession:
@@ -55,7 +59,7 @@ class AccessService:
         #  if user with the username registered or not nevertheless, if it's
         #  not protected from unauthorized access.
 
-        user = await self._identify_user(username)
+        user = await self._identify_user(email)
         if user is None:
             await self._dummy_authentication()
             raise ErrorUnauthorized
@@ -92,10 +96,10 @@ class AccessService:
 
     async def _identify_user(
             self,
-            username: str,
+            email: str,
     ) -> User | None:
         stmt = (select(User)
-                .where(User.username == username))
+                .where(User.email == email))
         user = await self.orm_session.scalar(stmt)
         return user
 

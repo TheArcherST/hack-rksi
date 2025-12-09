@@ -15,24 +15,15 @@
 - `make test`: Run integration tests inside the test container.
 - `docker compose logs rest-server -f`: Stream container logs for debugging.
 
-## Coding Style & Naming Conventions
-- Python 3.12; 4-space indentation; keep lines ≤79 chars (enforced by `ruff`).
-- Ruff checks `E,F,UP,B,SIM,I`; fix or silence findings intentionally.
-- Use type hints and dataclasses/Pydantic models where applicable; prefer explicit imports over wildcards.
-- Modules and files use `snake_case`; tests follow `test_*.py` and function names describe behavior.
-
 ## Testing Guidelines
 - Tests live in `python/src/hack/integration_tests`; fixtures reside in `conftest.py`.
 - Target new endpoints/services with `test_*.py` cases; prefer deterministic data setup over relying on existing state.
 - Run `make test` before pushing; to scope locally, use `make test args='-k "<pattern>"'`.
 - If migrations change schema, add/adjust tests that cover the new behavior and ensure they pass in the containerized environment.
 
-## Commit & Pull Request Guidelines
-- Write imperative, focused commit messages (e.g., `Add appeal routing tests`, `Fix login session provider`); group related changes with their migrations.
-- PRs should include: summary of changes, local/test commands run, and any config or env updates required. Add screenshots or sample requests/responses when REST behavior changes.
-- Keep branches small and reviewable; avoid mixing refactors with functional changes unless tightly coupled.
-
-## Security & Configuration Tips
-- Never commit `.env` files or secrets; use the provided `.env.example` templates.
-- The stack expects Postgres and Redis from Compose; use the provided host/port defaults unless you know the impact.
-- Run migrations only after the database container is healthy to avoid partial state.
+## Typical development cycle  (PLEASE JUST RUN COMMANDS, IT WILL WORK IN YOUR ENVIRONMENT)
+1. Implement feature and tests
+2. Run `make generate-migrations m="Migration message here"` to generate migrations if models alerted
+3. Run `make up` to deploy locally + apply new migrations  
+4. Run `make test` to run integration tests
+5. Done
