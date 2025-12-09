@@ -29,7 +29,9 @@ def main():
     )
     container = make_async_container(*providers)
 
-    app = FastAPI()
+    app = FastAPI(
+        title="IT-Tech 2025, Events API",
+    )
     setup_dishka(container, app)
 
     exception_handlers.register(app)
