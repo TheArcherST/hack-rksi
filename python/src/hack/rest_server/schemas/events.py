@@ -71,7 +71,7 @@ class EventCardDTO(BaseDTO):
     ends_at: datetime
     image_url: str
     participants_count: int
-    max_participants_count: int
+    max_participants_count: int | None
     status: EventStatusEnum
     participation_status: ParticipationStatusEnum
 
