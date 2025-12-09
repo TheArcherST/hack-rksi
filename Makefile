@@ -17,3 +17,5 @@ logs:
 	docker compose logs -f
 down:
 	docker compose down
+drop:
+	docker compose down --volumes
