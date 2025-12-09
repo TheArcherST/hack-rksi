@@ -1,4 +1,5 @@
 import pytest
+from uuid import uuid4
 
 from . import api_templates
 from .conftest import authed_client, make_authed_client
@@ -110,3 +111,63 @@ def test_login_rejects_invalid_email(client):
     error = _get_field_error(r.json().get("detail", []), "email")
     assert error is not None
     assert "email" in error.get("msg", "").lower()
+
+
+def test_password_recovery_flow(client):
+    email = f"test_user_recovery-{uuid4()}@example.com"
+    old_password = "old_secret"
+    new_password = "new_secret"
+
+    req = api_templates.make_register()
+    req.json = {
+        "email": email,
+        "password": old_password,
+        "full_name": "sample",
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 201
+    registration_token = r.json()["token"]
+
+    req = api_templates.make_intercept_verification_code()
+    r = client.prepsend(req)
+    assert r.status_code == 200
+    verification_data = r.json()
+
+    req = api_templates.make_registration_verification()
+    req.json = {
+        "code": verification_data["code"],
+        "token": registration_token,
+    }
+    r = client.prepsend(req)
+    assert r.status_code in (200, 201, 204)
+
+    req = api_templates.make_login_recovery()
+    req.json = {
+        "email": email,
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 201
+    recovery_token = r.json()["token"]
+
+    req = api_templates.make_login_recovery_submit()
+    req.json = {
+        "token": recovery_token,
+        "password": new_password,
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 204
+
+    req = api_templates.make_login()
+    req.json = {
+        "email": email,
+        "password": new_password,
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 201
+
+    req.json = {
+        "email": email,
+        "password": old_password,
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 401
