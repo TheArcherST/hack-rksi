@@ -114,6 +114,7 @@ async def list_event_cards(
                 ends_at=event.ends_at,
                 image_url=event.image_url,
                 participants_count=participants_count.get(event.id, 0),
+                max_participants_count=event.max_participants_count,
                 status=event.status,
                 participation_status=participation_status_dto,
             )
