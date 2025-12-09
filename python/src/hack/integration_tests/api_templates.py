@@ -289,3 +289,19 @@ def make_update_event() -> PatchedRequest:
         method="PUT",
         url=_base_url + "/events/{event_id}",
     )
+
+
+# ---------- EVENT CARDS (USER) ----------
+
+def make_list_event_cards() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/events/cards",
+    )
+
+
+def make_update_my_participation() -> PatchedRequest:
+    return PatchedRequest(
+        method="PUT",
+        url=_base_url + "/events/{event_id}/participants/me",
+    )

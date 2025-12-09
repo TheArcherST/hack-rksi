@@ -2,11 +2,9 @@ from uuid import uuid4
 
 import pytest
 from requests import Request, Session
-from sqlalchemy import create_engine, text
 
 from . import api_templates
 from .base import PatchedRequest
-from hack.core.providers import ConfigHack
 from hack.core.models.user import UserRoleEnum
 
 

@@ -3,22 +3,27 @@ from datetime import datetime, timezone
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from hack.core.models import Event, EventParticipant, User
 from hack.core.models.event import EventStatusEnum
 from hack.core.services.uow_ctl import UoWCtl
-from hack.rest_server.models import AuthorizedAdministrator
+from hack.rest_server.models import AuthorizedAdministrator, AuthorizedUser
 from hack.rest_server.schemas.events import (
     EventDTO,
     CreateEventDTO,
     UpdateEventDTO,
+    UpdateMyParticipationDTO,
+    ParticipationStatusEnum,
 )
 
 
-router = APIRouter(
+admin_panel_router = APIRouter(
+    prefix="/events",
+)
+userspace_router = APIRouter(
     prefix="/events",
 )
 
@@ -86,7 +91,7 @@ async def _ensure_users_exist(
         )
 
 
-@router.post(
+@admin_panel_router.post(
     "",
     response_model=EventDTO,
     status_code=status.HTTP_201_CREATED,
@@ -127,7 +132,10 @@ async def create_event(
     )
     session.add(event)
     event.participants = [
-        EventParticipant(user_id=user_id)
+        EventParticipant(
+            user_id=user_id,
+            status=EventParticipant.ParticipationStatusEnum.PARTICIPATING,
+        )
         for user_id in participant_ids
     ]
     await session.flush()
@@ -135,7 +143,7 @@ async def create_event(
     return event
 
 
-@router.get(
+@admin_panel_router.get(
     "",
     response_model=list[EventDTO],
 )
@@ -172,7 +180,7 @@ async def list_events(
     return list(events.unique())
 
 
-@router.get(
+@admin_panel_router.get(
     "/{event_id}",
     response_model=EventDTO,
 )
@@ -197,7 +205,7 @@ async def get_event(
     return event
 
 
-@router.put(
+@admin_panel_router.put(
     "/{event_id}",
     response_model=EventDTO,
 )
@@ -300,7 +308,10 @@ async def update_event(
         event.participants.clear()
         await session.flush()
         event.participants = [
-            EventParticipant(user_id=user_id)
+            EventParticipant(
+                user_id=user_id,
+                status=EventParticipant.ParticipationStatusEnum.PARTICIPATING,
+            )
             for user_id in participant_ids
         ]
     else:
@@ -313,3 +324,85 @@ async def update_event(
     await session.flush()
     await uow_ctl.commit()
     return event
+
+
+@userspace_router.put(
+    "/{event_id}/participants/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+@inject
+async def update_my_participation(
+    session: FromDishka[AsyncSession],
+    uow_ctl: FromDishka[UoWCtl],
+    authorized_user: FromDishka[AuthorizedUser],
+    event_id: int,
+    payload: UpdateMyParticipationDTO,
+) -> None:
+    stmt_event = select(Event).where(Event.id == event_id)
+    event = await session.scalar(stmt_event)
+    if event is None or event.rejected_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found",
+        )
+
+    participant = await session.scalar(
+        select(EventParticipant)
+        .where(EventParticipant.event_id == event_id)
+        .where(EventParticipant.user_id == authorized_user.id)
+    )
+
+    if payload.status == ParticipationStatusEnum.NONE:
+        if participant is not None:
+            await session.delete(participant)
+        await session.flush()
+        await uow_ctl.commit()
+        return None
+
+    if payload.status == ParticipationStatusEnum.PARTICIPATING:
+        ends_at = _normalize_datetime(event.ends_at)
+        if ends_at <= datetime.now(tz=timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Event already finished",
+            )
+
+    if payload.status == ParticipationStatusEnum.PARTICIPATING:
+        stmt_count = (
+            select(func.count(EventParticipant.id))
+            .where(EventParticipant.event_id == event_id)
+            .where(
+                EventParticipant.status
+                == EventParticipant.ParticipationStatusEnum.PARTICIPATING
+            )
+            .where(EventParticipant.user_id != authorized_user.id)
+        )
+        current_count = await session.scalar(stmt_count) or 0
+        if (
+            event.max_participants_count is not None
+            and current_count + 1 > event.max_participants_count
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Max participants count exceeded",
+            )
+
+    target_status = (
+        EventParticipant.ParticipationStatusEnum.PARTICIPATING
+        if payload.status == ParticipationStatusEnum.PARTICIPATING
+        else EventParticipant.ParticipationStatusEnum.REJECTED
+    )
+
+    if participant is None:
+        participant = EventParticipant(
+            event_id=event_id,
+            user_id=authorized_user.id,
+            status=target_status,
+        )
+        session.add(participant)
+    else:
+        participant.status = target_status
+
+    await session.flush()
+    await uow_ctl.commit()
+    return None

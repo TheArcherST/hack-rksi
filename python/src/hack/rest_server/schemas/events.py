@@ -3,12 +3,19 @@ from datetime import datetime
 from pydantic import Field
 
 from .base import BaseDTO
-from ...core.models.event import EventStatusEnum
+from ...core.models.event import EventStatusEnum, EventParticipant
+from enum import StrEnum
 
+
+class ParticipationStatusEnum(StrEnum):
+    NONE = "NONE"
+    PARTICIPATING = EventParticipant.ParticipationStatusEnum.PARTICIPATING
+    REJECTED = EventParticipant.ParticipationStatusEnum.REJECTED
 
 class EventParticipantDTO(BaseDTO):
     user_id: int
     created_at: datetime
+    status: ParticipationStatusEnum
 
 
 class CreateEventDTO(BaseDTO):
@@ -53,3 +60,23 @@ class EventDTO(BaseDTO):
     rejected_at: datetime | None
     status: EventStatusEnum
     participants: list[EventParticipantDTO]
+
+
+class EventCardDTO(BaseDTO):
+    id: int
+    name: str
+    short_description: str | None
+    description: str
+    starts_at: datetime
+    ends_at: datetime
+    image_url: str
+    participants_count: int
+    status: EventStatusEnum
+    participation_status: ParticipationStatusEnum
+
+
+class UpdateMyParticipationDTO(BaseDTO):
+    status: ParticipationStatusEnum = Field(
+        description="PARTICIPATING to join, REJECTED to reject, NONE to leave",
+        default=ParticipationStatusEnum.NONE,
+    )

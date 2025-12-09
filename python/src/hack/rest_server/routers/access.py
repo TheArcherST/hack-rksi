@@ -7,9 +7,14 @@ from hack.core.models import IssuedRegistration, IssuedLoginRecovery
 from hack.core.services.access import (
     AccessService,
 )
-from hack.core.errors.access import ErrorUnauthorized, ErrorVerification, \
-    ErrorEmailAlreadyExists, ErrorRecoveryEmailNotFound, \
-    ErrorRecoveryTokenInvalid, ErrorRecoveryTokenExpired
+from hack.core.errors.access import (
+    ErrorUnauthorized,
+    ErrorVerification,
+    ErrorEmailAlreadyExists,
+    ErrorRecoveryEmailNotFound,
+    ErrorRecoveryTokenInvalid,
+    ErrorRecoveryTokenExpired,
+)
 from hack.core.services.uow_ctl import UoWCtl
 from hack.core.providers import ConfigHack
 from hack.rest_server.models import AuthorizedUser
