@@ -147,6 +147,10 @@ def test_password_recovery_flow(client):
     }
     r = client.prepsend(req)
     assert r.status_code == 201
+
+    req = api_templates.make_intercept_recovery_token()
+    r = client.prepsend(req)
+    assert r.status_code == 200
     recovery_token = r.json()["token"]
 
     req = api_templates.make_login_recovery_submit()
