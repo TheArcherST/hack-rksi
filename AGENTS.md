@@ -6,7 +6,6 @@
 - `python/src/hack/integration_tests`: Pytest suites exercising the running stack.
 - Endpoints implementation should be expressed in request handler, unless there some complex domain logic.
 - Complex domain logic should be expressed as service and to be used by request handlers.
-- Domain related with appeals, leads and operators is REFERENCE DOMAIN (just reference for you, will not be included into release).
 
 ## Build, Test, and Development Commands
 - `make up`: Build images, start the stack, and run migrations.
