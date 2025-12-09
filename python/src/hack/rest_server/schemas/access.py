@@ -3,6 +3,7 @@ from uuid import UUID
 from pydantic import EmailStr
 
 from .base import BaseDTO
+from ...core.models.user import UserRoleEnum
 
 
 class LoginCredentialsDTO(BaseDTO):
@@ -26,6 +27,7 @@ class IssuedRegistrationDTO(BaseDTO):
 
 
 class ActiveLoginDTO(BaseDTO):
+    role: UserRoleEnum
     email: EmailStr
     full_name: str
 

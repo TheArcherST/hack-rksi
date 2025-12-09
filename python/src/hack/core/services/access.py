@@ -24,6 +24,7 @@ from hack.core.models import (
     IssuedRegistration,
     IssuedLoginRecovery,
 )
+from hack.core.models.user import UserRoleEnum
 
 
 class AccessService:
@@ -81,6 +82,7 @@ class AccessService:
             raise ErrorVerification
 
         user = User(
+            role=UserRoleEnum.USER,
             username=issued_registration.email,
             email=issued_registration.email,
             password_hash=issued_registration.password_hash,

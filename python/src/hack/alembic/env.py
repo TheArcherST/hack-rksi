@@ -1,3 +1,4 @@
+import alembic_postgresql_enum  # noqa
 from logging.config import fileConfig
 
 from alembic import context
