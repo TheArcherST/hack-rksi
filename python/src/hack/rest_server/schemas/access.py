@@ -21,6 +21,15 @@ class RegisterDTO(BaseDTO):
     full_name: str
 
 
+class IssuedRegistrationDTO(BaseDTO):
+    token: UUID
+
+
 class ActiveLoginDTO(BaseDTO):
     email: EmailStr
     full_name: str
+
+
+class VerifyRegistrationDTO(BaseDTO):
+    token: UUID
+    code: int

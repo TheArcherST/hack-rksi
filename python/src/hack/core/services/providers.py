@@ -6,7 +6,6 @@ from hack.core.services.access import AccessService
 from hack.core.services.appeal import AppealService
 from hack.core.services.appeal_routing import AppealRoutingService
 from hack.core.services.uow_ctl import UoWCtl
-from hack.core.services.verification import VerificationService
 
 
 class ProviderServices(Provider):
@@ -20,10 +19,6 @@ class ProviderServices(Provider):
     )
     get_appeal_service = provide(
         AppealService,
-        scope=Scope.REQUEST,
-    )
-    get_verification_service = provide(
-        VerificationService,
         scope=Scope.REQUEST,
     )
 

@@ -4,3 +4,11 @@ class ServiceAccessError(Exception):
 
 class ErrorUnauthorized(ServiceAccessError):
     pass
+
+
+class ErrorVerification(ServiceAccessError):
+    pass
+
+
+class ErrorEmailAlreadyExists(ServiceAccessError):
+    pass

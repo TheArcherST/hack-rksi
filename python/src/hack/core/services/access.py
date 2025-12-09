@@ -1,4 +1,6 @@
 import secrets
+import uuid
+from hmac import compare_digest
 from uuid import UUID
 
 from argon2 import PasswordHasher
@@ -7,8 +9,9 @@ from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from hack.core.errors.access import ErrorUnauthorized
-from hack.core.models import LoginSession, User
+from hack.core.errors.access import ErrorUnauthorized, ErrorVerification, \
+    ErrorEmailAlreadyExists
+from hack.core.models import LoginSession, User, IssuedRegistration
 
 
 class AccessService:
@@ -20,18 +23,54 @@ class AccessService:
         self.orm_session = orm_session
         self.ph = ph
 
-    async def register(
+    async def issue_registration(
             self,
             email: EmailStr,
             password: str,
             full_name: str
-    ) -> User:
+    ) -> IssuedRegistration:
+        stmt = (select(User.id)
+                .where(User.email == email))
+        existing_user_id = await self.orm_session.scalar(stmt)
+        if existing_user_id is not None:
+            raise ErrorEmailAlreadyExists
+
         password_hash = self.ph.hash(password)
-        user = User(
-            username=email,
+        verification_code = secrets.randbelow(900000) + 100000
+        token = uuid.uuid4()
+        issued_registration = IssuedRegistration(
             email=email,
             password_hash=password_hash,
             full_name=full_name,
+            verification_code=verification_code,
+            token=token,
+        )
+        self.orm_session.add(issued_registration)
+
+        return issued_registration
+
+    async def verify_registration(
+            self,
+            issued_registration_token: UUID,
+            code: int,
+    ) -> User:
+        stmt = (select(IssuedRegistration)
+                .where(IssuedRegistration.token == issued_registration_token)
+                .order_by(IssuedRegistration.created_at.desc()))
+        issued_registration = await self.orm_session.scalar(stmt)
+        if issued_registration is None:
+            raise ErrorVerification
+        if not compare_digest(
+                str(code),
+                str(issued_registration.verification_code)
+        ):
+            raise ErrorVerification
+
+        user = User(
+            username=issued_registration.email,
+            email=issued_registration.email,
+            password_hash=issued_registration.password_hash,
+            full_name=issued_registration.full_name,
         )
         self.orm_session.add(user)
         await self.orm_session.flush()
