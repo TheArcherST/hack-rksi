@@ -68,4 +68,4 @@ class EventParticipant(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
 
     event: Mapped[Event] = relationship(back_populates="participants")
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
