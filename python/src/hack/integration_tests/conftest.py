@@ -2,9 +2,12 @@ from uuid import uuid4
 
 import pytest
 from requests import Request, Session
+from sqlalchemy import create_engine, text
 
 from . import api_templates
 from .base import PatchedRequest
+from hack.core.providers import ConfigHack
+from hack.core.models.user import UserRoleEnum
 
 
 class PatchedSession(Session):
@@ -26,7 +29,17 @@ def client() -> PatchedSession:
     return client
 
 
-def make_authed_client(default_email: str | None = None):
+def promote_user_to_admin(email: str, client: PatchedSession):
+    req = api_templates.make_change_role()
+    req.json = {
+        "email": email,
+        "role": UserRoleEnum.ADMINISTRATOR.value,
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 204
+
+
+def make_authed_client(default_email: str | None = None, *, as_admin: bool = False):
     client = PatchedSession()
     req = api_templates.make_register()
     val_email = default_email or f"test_user-{uuid4()}@example.com"
@@ -67,9 +80,17 @@ def make_authed_client(default_email: str | None = None):
     client.headers["X-Login-Session-Uid"] = auth_creds["login_session_uid"]
     client.headers["X-Login-Session-Token"] = auth_creds["login_session_token"]
 
+    if as_admin:
+        promote_user_to_admin(val_email, client)
+
     return client
 
 
 @pytest.fixture()
 def authed_client() -> PatchedSession:
     return make_authed_client()
+
+
+@pytest.fixture()
+def admin_client() -> PatchedSession:
+    return make_authed_client(as_admin=True)

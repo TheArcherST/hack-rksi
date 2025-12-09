@@ -6,6 +6,7 @@ from .lead_source import LeadSource
 from .operator import Operator, LeadSourceOperator
 from .appeal import Appeal
 from .issued_login_recovery import IssuedLoginRecovery
+from .event import Event, EventParticipant
 
 
 __all__ = [
@@ -18,4 +19,6 @@ __all__ = [
     "Operator",
     "LeadSourceOperator",
     "Appeal",
+    "Event",
+    "EventParticipant",
 ]

@@ -1,6 +1,9 @@
 from uuid import UUID
 
+from pydantic import EmailStr
+
 from .base import BaseDTO
+from ...core.models.user import UserRoleEnum
 
 
 class InterceptVerificationCodeDTO(BaseDTO):
@@ -10,3 +13,8 @@ class InterceptVerificationCodeDTO(BaseDTO):
 
 class InterceptRecoveryTokenDTO(BaseDTO):
     token: UUID
+
+
+class ChangeUserRoleDTO(BaseDTO):
+    email: EmailStr
+    role: UserRoleEnum
