@@ -28,7 +28,7 @@ async def send_email(
     message["From"] = email_config.from_email
     message.set_content(content)
 
-    task_id = context.message.message_id if context and context.message else ""
+    task_id = context.message.task_id
     if email_config.backend == "console":
         logger.info(
             "Email queued (console backend); to=%s subject=%s task_id=%s",

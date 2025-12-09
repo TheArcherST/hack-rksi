@@ -18,10 +18,17 @@ def make_login():
         url=_base_url + "/login",
     )
 
-def make_verification():
+def make_registration_verification():
     return PatchedRequest(
         method="POST",
-        url=_base_url + "/verification",
+        url=_base_url + "/register/verification",
+    )
+
+
+def make_intercept_verification_code():
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/debug/intercept-verification-code",
     )
 
 

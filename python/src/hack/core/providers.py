@@ -84,6 +84,7 @@ class ConfigHack(BaseSettings):
         env_prefix="HACK__",
     )
 
+    debug: bool = False
     postgres: ConfigPostgres
     redis: ConfigRedis
     email: ConfigEmail = ConfigEmail()
