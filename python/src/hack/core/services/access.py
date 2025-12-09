@@ -1,5 +1,6 @@
 import secrets
 import uuid
+from datetime import datetime, timedelta, timezone
 from hmac import compare_digest
 from uuid import UUID
 
@@ -10,11 +11,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from hack.core.errors.access import ErrorUnauthorized, ErrorVerification, \
-    ErrorEmailAlreadyExists
-from hack.core.models import LoginSession, User, IssuedRegistration
+    ErrorEmailAlreadyExists, ErrorRecoveryEmailNotFound, \
+    ErrorRecoveryTokenInvalid, ErrorRecoveryTokenExpired
+from hack.core.models import LoginSession, User, IssuedRegistration, \
+    IssuedLoginRecovery
 
 
 class AccessService:
+    RECOVERY_TOKEN_TTL = timedelta(hours=24)
+
     def __init__(
             self,
             orm_session: AsyncSession,
@@ -106,6 +111,51 @@ class AccessService:
         await self.orm_session.flush()
 
         return login_session
+
+    async def issue_login_recovery(
+            self,
+            email: EmailStr,
+    ) -> IssuedLoginRecovery:
+        user = await self._identify_user(email=email)
+        if user is None:
+            raise ErrorRecoveryEmailNotFound
+
+        issued_recovery = IssuedLoginRecovery(
+            user_id=user.id,
+            token=uuid.uuid4(),
+        )
+        self.orm_session.add(issued_recovery)
+
+        return issued_recovery
+
+    async def submit_login_recovery(
+            self,
+            token: UUID,
+            password: str,
+    ) -> User:
+        stmt = (select(IssuedLoginRecovery)
+                .where(IssuedLoginRecovery.token == token)
+                .order_by(IssuedLoginRecovery.created_at.desc()))
+        issued_recovery = await self.orm_session.scalar(stmt)
+        if issued_recovery is None or issued_recovery.used_at is not None:
+            raise ErrorRecoveryTokenInvalid
+
+        now = datetime.now(tz=timezone.utc)
+        created_at = issued_recovery.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if created_at < now - self.RECOVERY_TOKEN_TTL:
+            raise ErrorRecoveryTokenExpired
+
+        user = await self.orm_session.get(User, issued_recovery.user_id)
+        if user is None:
+            raise ErrorRecoveryTokenInvalid
+
+        user.password_hash = self.ph.hash(password)
+        issued_recovery.used_at = now
+        await self.orm_session.flush()
+
+        return user
 
     async def lookup_login_session(
             self,

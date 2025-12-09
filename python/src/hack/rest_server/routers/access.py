@@ -3,13 +3,15 @@ from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException
 from taskiq import AsyncBroker
 
-from hack.core.models import IssuedRegistration
+from hack.core.models import IssuedRegistration, IssuedLoginRecovery
 from hack.core.services.access import (
     AccessService,
 )
 from hack.core.errors.access import ErrorUnauthorized, ErrorVerification, \
-    ErrorEmailAlreadyExists
+    ErrorEmailAlreadyExists, ErrorRecoveryEmailNotFound, \
+    ErrorRecoveryTokenInvalid, ErrorRecoveryTokenExpired
 from hack.core.services.uow_ctl import UoWCtl
+from hack.core.providers import ConfigHack
 from hack.rest_server.models import AuthorizedUser
 from hack.rest_server.schemas.access import (
     LoginCredentialsDTO,
@@ -17,6 +19,8 @@ from hack.rest_server.schemas.access import (
     RegisterDTO,
     ActiveLoginDTO,
     VerifyRegistrationDTO, IssuedRegistrationDTO,
+    LoginRecoveryRequestDTO, IssuedLoginRecoveryDTO,
+    LoginRecoverySubmitDTO,
 )
 from hack.tasks.tasks.send_email import send_email
 
@@ -74,11 +78,12 @@ async def register(
 @inject
 async def verify_registration(
         access_service: FromDishka[AccessService],
+        broker: FromDishka[AsyncBroker],
         uow_ctl: FromDishka[UoWCtl],
         payload: VerifyRegistrationDTO,
 ) -> None:
     try:
-        await access_service.verify_registration(
+        user = await access_service.verify_registration(
             issued_registration_token=payload.token,
             code=payload.code,
         )
@@ -89,6 +94,17 @@ async def verify_registration(
         ) from e
 
     await uow_ctl.commit()
+    await (send_email
+           .kicker()
+           .with_broker(broker)
+           .kiq(
+               to_email=user.email,
+               subject="Registration completed",
+               content=(
+                   f"Welcome email",
+               ),
+           ))
+
     return None
 
 
@@ -119,6 +135,88 @@ async def login(
         login_session_uid=login_session.uid,
         login_session_token=login_session.token,
     )
+
+
+@router.post(
+    "/login/recovery",
+    status_code=201,
+    response_model=IssuedLoginRecoveryDTO,
+)
+@inject
+async def issue_login_recovery(
+        access_service: FromDishka[AccessService],
+        uow_ctl: FromDishka[UoWCtl],
+        broker: FromDishka[AsyncBroker],
+        config: FromDishka[ConfigHack],
+        payload: LoginRecoveryRequestDTO,
+) -> IssuedLoginRecovery:
+    try:
+        issued_recovery = await access_service.issue_login_recovery(
+            email=payload.email,
+        )
+    except ErrorRecoveryEmailNotFound as e:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        ) from e
+
+    await uow_ctl.commit()
+
+    recovery_url = config.recovery_url_template.format(
+        token=issued_recovery.token,
+    )
+    await (send_email
+           .kicker()
+           .with_broker(broker)
+           .kiq(
+               to_email=payload.email,
+               subject="Reset your password",
+               content=(
+                   "Password reset was requested for your account.\n\n"
+                   f"Use this link to set a new password:\n{recovery_url}\n\n"
+                   "The link will expire in 24 hours."
+               ),
+           ))
+    return issued_recovery
+
+
+@router.post(
+    "/login/recovery/submit",
+    status_code=204,
+)
+@inject
+async def submit_login_recovery(
+        access_service: FromDishka[AccessService],
+        uow_ctl: FromDishka[UoWCtl],
+        broker: FromDishka[AsyncBroker],
+        payload: LoginRecoverySubmitDTO,
+) -> None:
+    try:
+        user = await access_service.submit_login_recovery(
+            token=payload.token,
+            password=payload.password,
+        )
+    except ErrorRecoveryTokenExpired as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Recovery token expired",
+        ) from e
+    except ErrorRecoveryTokenInvalid as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid recovery token",
+        ) from e
+
+    await uow_ctl.commit()
+    await (send_email
+           .kicker()
+           .with_broker(broker)
+           .kiq(
+               to_email=user.email,
+               subject="Password changed",
+               content="Your password has been changed successfully.",
+           ))
+    return None
 
 
 @router.get(

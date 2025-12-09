@@ -88,6 +88,7 @@ class ConfigHack(BaseSettings):
     postgres: ConfigPostgres
     redis: ConfigRedis
     email: ConfigEmail = ConfigEmail()
+    recovery_url_template: str = "http://localhost/recovery?token={token}"
 
 
 class ProviderConfig(Provider):

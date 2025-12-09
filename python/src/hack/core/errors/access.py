@@ -12,3 +12,19 @@ class ErrorVerification(ServiceAccessError):
 
 class ErrorEmailAlreadyExists(ServiceAccessError):
     pass
+
+
+class ErrorRecovery(ServiceAccessError):
+    pass
+
+
+class ErrorRecoveryEmailNotFound(ErrorRecovery):
+    pass
+
+
+class ErrorRecoveryTokenInvalid(ErrorRecovery):
+    pass
+
+
+class ErrorRecoveryTokenExpired(ErrorRecovery):
+    pass

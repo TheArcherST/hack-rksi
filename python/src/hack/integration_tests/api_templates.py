@@ -18,6 +18,20 @@ def make_login():
         url=_base_url + "/login",
     )
 
+def make_login_recovery():
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/login/recovery",
+    )
+
+
+def make_login_recovery_submit():
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/login/recovery/submit",
+    )
+
+
 def make_registration_verification():
     return PatchedRequest(
         method="POST",

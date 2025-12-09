@@ -33,3 +33,16 @@ class ActiveLoginDTO(BaseDTO):
 class VerifyRegistrationDTO(BaseDTO):
     token: UUID
     code: int
+
+
+class LoginRecoveryRequestDTO(BaseDTO):
+    email: EmailStr
+
+
+class IssuedLoginRecoveryDTO(BaseDTO):
+    token: UUID
+
+
+class LoginRecoverySubmitDTO(BaseDTO):
+    token: UUID
+    password: str
