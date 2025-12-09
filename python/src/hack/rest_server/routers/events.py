@@ -19,7 +19,6 @@ from hack.rest_server.schemas.events import (
     ParticipationStatusEnum,
 )
 
-
 admin_panel_router = APIRouter(
     prefix="/events",
 )

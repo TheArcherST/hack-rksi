@@ -291,6 +291,13 @@ def make_update_event() -> PatchedRequest:
     )
 
 
+def make_upload_file() -> PatchedRequest:
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/files",
+    )
+
+
 # ---------- EVENT CARDS (USER) ----------
 
 def make_list_event_cards() -> PatchedRequest:

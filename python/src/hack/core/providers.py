@@ -77,6 +77,15 @@ class ConfigEmail(BaseModel):
     timeout: float = 5.0
 
 
+class ConfigS3(BaseModel):
+    endpoint_url: str
+    access_key: str
+    secret_key: str
+    bucket: str
+    region_name: str | None = None
+    public_base_url: str | None = None
+
+
 class ConfigHack(BaseSettings):
     model_config = SettingsConfigDict(
         env_nested_delimiter="__",
@@ -88,6 +97,7 @@ class ConfigHack(BaseSettings):
     postgres: ConfigPostgres
     redis: ConfigRedis
     email: ConfigEmail = ConfigEmail()
+    s3: ConfigS3
     recovery_url_template: str = "http://localhost/recovery?token={token}"
 
 
@@ -116,6 +126,13 @@ class ProviderConfig(Provider):
             config: ConfigHack,
     ) -> ConfigEmail:
         return config.email
+
+    @provide(scope=Scope.APP)
+    def get_config_s3(
+            self,
+            config: ConfigHack,
+    ) -> ConfigS3:
+        return config.s3
 
 
 class ProviderDatabase(Provider):

@@ -1,11 +1,14 @@
 import uuid
+from typing import AsyncGenerator, Any, NewType
 from uuid import UUID
 
+import aioboto3
 from dishka import Provider, Scope, from_context, provide
 from fastapi import FastAPI, HTTPException
 from fastapi.requests import Request
 from starlette.testclient import TestClient
 
+from hack.core.providers import ConfigS3
 from hack.core.services.access import AccessService
 from hack.core.errors.access import ErrorUnauthorized
 from hack.rest_server.models import (
@@ -14,6 +17,9 @@ from hack.rest_server.models import (
     AuthorizedAdministrator,
 )
 from hack.core.models.user import UserRoleEnum
+
+
+S3Client = NewType("S3Client", object)
 
 
 class ProviderServer(Provider):
@@ -85,3 +91,18 @@ class ProviderServer(Provider):
         AccessService,
         scope=Scope.REQUEST,
     )
+
+    @provide(scope=Scope.APP)
+    async def get_s3_client(
+            self,
+            config: ConfigS3,
+    ) -> AsyncGenerator[S3Client, None]:
+        session = aioboto3.Session()
+        async with session.client(
+                "s3",
+                endpoint_url=config.endpoint_url,
+                aws_access_key_id=config.access_key,
+                aws_secret_access_key=config.secret_key,
+                region_name=config.region_name,
+        ) as client:
+            yield client
