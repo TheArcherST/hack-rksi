@@ -23,8 +23,12 @@ class PatchedSession(Session):
 
 
 @pytest.fixture()
-def client() -> Generator[PatchedSession, Any, None]:
-    client = PatchedSession()
+def client() -> PatchedSession:
+    return PatchedSession()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def wipe_examples(client) -> Generator[PatchedSession, Any, None]:
     req = api_templates.make_delete_examples()
     r = client.prepsend(req)
     assert r.status_code == 200
