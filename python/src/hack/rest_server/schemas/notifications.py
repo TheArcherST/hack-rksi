@@ -9,6 +9,8 @@ class InstantNotificationDTO(BaseDTO):
     id: int
     title: str
     content: str
+    cta_url: str | None
+    cta_label: str | None
     created_at: datetime
     acked_at: datetime | None
 

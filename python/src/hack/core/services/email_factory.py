@@ -305,6 +305,7 @@ class EmailFactory:
             subject=subject,
             html_content=content,
             content=text.strip(),
+            context=context,
         )
 
     def _event_context(

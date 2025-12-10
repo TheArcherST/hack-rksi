@@ -14,6 +14,8 @@ class InstantNotification(Base):
 
     title: Mapped[str] = mapped_column()
     content: Mapped[str] = mapped_column()
+    cta_url: Mapped[str | None]
+    cta_label: Mapped[str | None]
     acked_at: Mapped[datetime | None]
     created_at: Mapped[CreatedAt]
 

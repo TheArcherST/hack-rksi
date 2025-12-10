@@ -67,11 +67,11 @@ class ConfigRedis(BaseModel):
 
 class ConfigEmail(BaseModel):
     backend: Literal["smtp", "console"] = "console"
-    host: str = "localhost"
+    host: str
     port: int = 25
     username: str | None = None
     password: str | None = None
-    from_email: EmailStr = "no-reply@example.com"
+    from_email: EmailStr
     start_tls: bool = False
     use_tls: bool = False
     timeout: float = 5.0
@@ -87,9 +87,9 @@ class ConfigS3(BaseModel):
 
 
 class ConfigTemplates(BaseModel):
-    recovery_url_template: str = "http://localhost/recovery?token={token}"
-    event_card_url_template: str = "http://localhost/events/cards/{event_id}"
-    event_url_template: str = "http://localhost/events/{event_id}"
+    recovery_url_template: str  # expects `{token}`
+    event_card_url_template: str  # expects `{event_id}`
+    event_url_template: str  # expects `{event_id}`
 
 
 class ConfigHack(BaseSettings):
@@ -102,10 +102,9 @@ class ConfigHack(BaseSettings):
     debug: bool = False
     postgres: ConfigPostgres
     redis: ConfigRedis
-    email: ConfigEmail = ConfigEmail()
+    email: ConfigEmail
     s3: ConfigS3
-    templates: ConfigTemplates = ConfigTemplates()
-
+    templates: ConfigTemplates
 
 class ProviderConfig(Provider):
     @provide(scope=Scope.APP)

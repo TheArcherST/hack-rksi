@@ -128,3 +128,4 @@ class RenderedEmail(BaseModel):
     subject: str
     html_content: str
     content: str
+    context: dict | None = Field(exclude=True, default=None)

@@ -59,6 +59,8 @@ class NotificationService:
                     title=rendered_email.subject,
                     content=rendered_email.content,
                     recipient_id=user.id,
+                    cta_url=rendered_email.context.get("cta_url"),
+                    cta_label=rendered_email.context.get("cta_label"),
                 )
                 self._session.add(instant_notification)
 
