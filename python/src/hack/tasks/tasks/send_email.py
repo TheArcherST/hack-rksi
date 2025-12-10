@@ -43,8 +43,12 @@ async def send_email(
         return
 
     if to_email.endswith("@example.com"):
-        logger.debug(f"Skip sending email to {to_email} because this email "
-                     f"identified as stub email")
+        logger.info(
+            "Example email queued so skip it; to=%s subject=%s task_id=%s",
+            to_email,
+            subject,
+            task_id,
+        )
         return
 
     await aiosmtplib.send(
