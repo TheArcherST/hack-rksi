@@ -12,6 +12,7 @@ from hack.core.errors.access import (
     ErrorUnauthorized,
     ErrorVerification,
     ErrorEmailAlreadyExists,
+    ErrorRegistrationRateLimited,
     ErrorRecoveryEmailNotFound,
     ErrorRecoveryTokenInvalid,
     ErrorRecoveryTokenExpired,
@@ -58,6 +59,12 @@ async def register(
         raise HTTPException(
             status_code=400,
             detail="Email already exists",
+        ) from e
+    except ErrorRegistrationRateLimited as e:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many verification requests, try later",
+            headers={"Retry-After": str(e.retry_after)},
         ) from e
 
     await uow_ctl.commit()

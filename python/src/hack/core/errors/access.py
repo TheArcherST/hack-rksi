@@ -28,3 +28,9 @@ class ErrorRecoveryTokenInvalid(ErrorRecovery):
 
 class ErrorRecoveryTokenExpired(ErrorRecovery):
     pass
+
+
+class ErrorRegistrationRateLimited(ServiceAccessError):
+    def __init__(self, retry_after: int):
+        super().__init__("Registration verification rate limit exceeded")
+        self.retry_after = retry_after

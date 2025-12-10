@@ -180,7 +180,6 @@ class ProviderRedis(Provider):
             decode_responses=config.decode_responses,
             max_connections=config.max_connections,
             socket_timeout=config.socket_timeout,
-            ssl=config.ssl,
         )
         try:
             yield client

@@ -76,7 +76,7 @@ class EmailFactory:
             self,
             event: RegistrationConfirmCodeEvent,
     ) -> RenderedEmail:
-        subject = "Подтвердите регистрацию"
+        subject = f"Код подтверждения {BRAND_NAME}: {event.verification_code}"
         text = (
             f"Здравствуйте, {event.full_name}!\n\n"
             f"Ваш код подтверждения: {event.verification_code}\n"

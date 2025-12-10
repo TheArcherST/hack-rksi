@@ -9,6 +9,7 @@ from argon2 import exceptions as argon2_exceptions
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from redis.asyncio import Redis as AsyncRedis
 
 from hack.core.errors.access import (
     ErrorUnauthorized,
@@ -17,6 +18,7 @@ from hack.core.errors.access import (
     ErrorRecoveryEmailNotFound,
     ErrorRecoveryTokenInvalid,
     ErrorRecoveryTokenExpired,
+    ErrorRegistrationRateLimited,
 )
 from hack.core.models import (
     LoginSession,
@@ -30,14 +32,19 @@ from hack.core.models.user import UserRoleEnum
 class AccessService:
     RECOVERY_TOKEN_TTL = timedelta(hours=24)
     REGISTRATION_VERIFICATION_TTL = timedelta(hours=24)
+    REGISTRATION_RATE_FREE_ATTEMPTS = 2
+    REGISTRATION_RATE_LIMIT_BASE = timedelta(seconds=60)
+    REGISTRATION_RATE_LIMIT_MAX = timedelta(hours=1)
 
     def __init__(
             self,
             orm_session: AsyncSession,
             ph: PasswordHasher,
+            redis_client: AsyncRedis,
     ):
         self.orm_session = orm_session
         self.ph = ph
+        self._redis = redis_client
 
     async def issue_registration(
             self,
@@ -50,6 +57,10 @@ class AccessService:
         existing_user_id = await self.orm_session.scalar(stmt)
         if existing_user_id is not None:
             raise ErrorEmailAlreadyExists
+
+        retry_after = await self._check_registration_rate_limit(email=email)
+        if retry_after is not None:
+            raise ErrorRegistrationRateLimited(retry_after=retry_after)
 
         password_hash = self.ph.hash(password)
         verification_code = secrets.randbelow(900000) + 100000
@@ -235,4 +246,23 @@ class AccessService:
         else:
             await self._dummy_rehash()
 
+        return None
+
+    async def _check_registration_rate_limit(self, email: str) -> int | None:
+        """
+        Returns retry_after (seconds) if rate limited, otherwise None.
+        """
+        key = f"registration:rate:{email.lower()}"
+        attempts = await self._redis.incr(key)
+        delay = min(
+            int(
+                self.REGISTRATION_RATE_LIMIT_BASE.total_seconds()
+                # first multiplier will be 2, then 4, then 8 and so on
+                * (2 ** (attempts - self.REGISTRATION_RATE_FREE_ATTEMPTS))
+            ),
+            int(self.REGISTRATION_RATE_LIMIT_MAX.total_seconds()),
+        )
+        await self._redis.expire(key, delay)
+        if attempts > self.REGISTRATION_RATE_FREE_ATTEMPTS:
+            return delay
         return None

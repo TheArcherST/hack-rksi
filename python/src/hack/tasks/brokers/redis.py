@@ -24,6 +24,7 @@ from hack.core.providers import (
     ProviderDatabase,
     ProviderConfig,
     ConfigRedis,
+    ProviderRedis,
 )
 from hack.tasks.brokers.default import default_broker
 from hack.tasks.providers import ProviderBroker
@@ -54,6 +55,7 @@ def make_worker_broker():
     providers = (
         ProviderConfig(),
         ProviderDatabase(),
+        ProviderRedis(),
         ProviderBroker(),
         ProviderServices(),
         NoAuthorizedUser(),

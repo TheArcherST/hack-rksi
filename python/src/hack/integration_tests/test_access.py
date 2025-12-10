@@ -62,6 +62,31 @@ def test_register_verification_rejects_invalid_code(client):
     assert r.status_code == 400
 
 
+def test_register_rate_limited_per_email(client):
+    email = f"test_user-rate-limit-{uuid4()}@example.com"
+    req = api_templates.make_register()
+    req.json = {
+        "email": email,
+        "full_name": "sample",
+        "password": "secret",
+    }
+
+    first = client.prepsend(req)
+    assert first.status_code == 201
+    second = client.prepsend(req)
+    assert second.status_code == 201
+
+    third = client.prepsend(req)
+    assert third.status_code == 429
+    retry_after = third.headers.get("Retry-After")
+    assert int(retry_after) >= 60
+
+    # Different email should still work
+    req.json["email"] = f"test_user-rate-limit-{uuid4()}@example.com"
+    third = client.prepsend(req)
+    assert third.status_code == 201
+
+
 def test_register_verification_expires(client):
     req = api_templates.make_register()
     req.json = {
