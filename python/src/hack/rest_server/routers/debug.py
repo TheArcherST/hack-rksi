@@ -1,16 +1,21 @@
+from datetime import datetime, timedelta, timezone
+
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from hack.core.models import IssuedRegistration, IssuedLoginRecovery, User
+from hack.core.models import IssuedRegistration, IssuedLoginRecovery, User, \
+    Event
 from hack.core.providers import ConfigHack
+from hack.core.services.access import AccessService
 from hack.core.services.uow_ctl import UoWCtl
 from hack.rest_server.schemas.debug import (
     InterceptVerificationCodeDTO,
     InterceptRecoveryTokenDTO,
     ChangeUserRoleDTO,
+    ExpireVerificationCodeDTO,
 )
 
 router = APIRouter(
@@ -72,6 +77,59 @@ async def intercept_verification_code(
     return InterceptRecoveryTokenDTO(
         token=issued_login_recovery.token,
     )
+
+
+@router.post(
+    "/expire-verification-code",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+@inject
+async def expire_verification_code(
+        session: FromDishka[AsyncSession],
+        uow_ctl: FromDishka[UoWCtl],
+        config: FromDishka[ConfigHack],
+        payload: ExpireVerificationCodeDTO,
+) -> None:
+    if not config.debug:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    stmt = (
+        select(IssuedRegistration)
+        .where(IssuedRegistration.token == payload.token)
+        .order_by(IssuedRegistration.created_at.desc())
+    )
+    issued_registration = await session.scalar(stmt)
+    if issued_registration is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Issued registration not found",
+        )
+
+    issued_registration.created_at = (
+        datetime.now(tz=timezone.utc)
+        - AccessService.REGISTRATION_VERIFICATION_TTL
+        - timedelta(minutes=1)
+    )
+    await session.flush()
+    await uow_ctl.commit()
+    return None
+
+
+@router.post(
+    "/delete-examples",
+)
+@inject
+async def delete_examples(
+        session: FromDishka[AsyncSession],
+        uow: FromDishka[UoWCtl],
+) -> None:
+    stmt = (delete(User)
+            .where(User.email.endswith("@example.com")))
+    await session.execute(stmt)
+    stmt = (delete(Event)
+            .where(Event.image_url.startswith("https://example.com/")))
+    await session.execute(stmt)
+    await uow.commit()
 
 
 @router.post(

@@ -1,3 +1,4 @@
+from typing import Any, Generator
 from uuid import uuid4
 
 import pytest
@@ -22,9 +23,16 @@ class PatchedSession(Session):
 
 
 @pytest.fixture()
-def client() -> PatchedSession:
+def client() -> Generator[PatchedSession, Any, None]:
     client = PatchedSession()
-    return client
+    req = api_templates.make_delete_examples()
+    r = client.prepsend(req)
+    assert r.status_code == 200
+    try:
+        yield client
+    finally:
+        r = client.prepsend(req)
+        assert r.status_code == 200
 
 
 def promote_user_to_admin(email: str, client: PatchedSession):

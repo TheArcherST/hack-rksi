@@ -29,6 +29,7 @@ from hack.core.models.user import UserRoleEnum
 
 class AccessService:
     RECOVERY_TOKEN_TTL = timedelta(hours=24)
+    REGISTRATION_VERIFICATION_TTL = timedelta(hours=24)
 
     def __init__(
             self,
@@ -74,6 +75,12 @@ class AccessService:
                 .order_by(IssuedRegistration.created_at.desc()))
         issued_registration = await self.orm_session.scalar(stmt)
         if issued_registration is None:
+            raise ErrorVerification
+        now = datetime.now(tz=timezone.utc)
+        created_at = issued_registration.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if created_at < now - self.REGISTRATION_VERIFICATION_TTL:
             raise ErrorVerification
         if not compare_digest(
                 str(code),

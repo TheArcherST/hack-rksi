@@ -71,7 +71,7 @@ class EventParticipant(Base):
     reminder_queued_at: Mapped[datetime | None]
 
     event_id: Mapped[int] = mapped_column(ForeignKey("event.id"))
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete='cascade'))
 
     event: Mapped[Event] = relationship(back_populates="participants")
     user: Mapped[User] = relationship()

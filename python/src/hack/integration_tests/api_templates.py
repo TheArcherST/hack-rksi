@@ -46,6 +46,20 @@ def make_intercept_verification_code():
     )
 
 
+def make_expire_verification_code():
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/debug/expire-verification-code",
+    )
+
+
+def make_delete_examples():
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/debug/delete-examples",
+    )
+
+
 def make_intercept_recovery_token():
     return PatchedRequest(
         method="GET",

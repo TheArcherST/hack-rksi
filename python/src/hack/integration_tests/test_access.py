@@ -62,6 +62,37 @@ def test_register_verification_rejects_invalid_code(client):
     assert r.status_code == 400
 
 
+def test_register_verification_expires(client):
+    req = api_templates.make_register()
+    req.json = {
+        "email": "test_user-expired-code@example.com",
+        "full_name": "sample",
+        "password": "secret",
+    }
+    r = client.prepsend(req)
+    assert r.status_code == 201
+    token = r.json()["token"]
+
+    req = api_templates.make_intercept_verification_code()
+    r = client.prepsend(req)
+    assert r.status_code == 200
+    verification_data = r.json()
+
+    expire_req = api_templates.make_expire_verification_code()
+    expire_req.json = {"token": token}
+    r = client.prepsend(expire_req)
+    assert r.status_code == 204
+
+    req = api_templates.make_registration_verification()
+    req.json = {
+        "code": verification_data["code"],
+        "token": token,
+    }
+
+    r = client.prepsend(req)
+    assert r.status_code == 400
+
+
 @pytest.mark.skip
 def test_verification_manually(client):
     email = input("Email: ")

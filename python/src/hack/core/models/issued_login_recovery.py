@@ -14,7 +14,7 @@ class IssuedLoginRecovery(Base):
     __tablename__ = "issued_login_recovery"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete='cascade'))
     token: Mapped[UUID] = mapped_column(default=uuid.uuid4, unique=True)
     created_at: Mapped[CreatedAt]
     used_at: Mapped[datetime | None]

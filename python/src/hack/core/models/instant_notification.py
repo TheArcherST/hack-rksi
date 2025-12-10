@@ -19,6 +19,6 @@ class InstantNotification(Base):
     acked_at: Mapped[datetime | None]
     created_at: Mapped[CreatedAt]
 
-    recipient_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    recipient_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete='cascade'))
 
     recipient: Mapped[User] = relationship()

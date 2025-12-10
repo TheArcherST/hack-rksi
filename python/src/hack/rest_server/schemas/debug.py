@@ -18,3 +18,7 @@ class InterceptRecoveryTokenDTO(BaseDTO):
 class ChangeUserRoleDTO(BaseDTO):
     email: EmailStr
     role: UserRoleEnum
+
+
+class ExpireVerificationCodeDTO(BaseDTO):
+    token: UUID

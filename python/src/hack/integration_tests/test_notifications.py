@@ -127,7 +127,6 @@ def test_notifications_flow(admin_client):
     admin_titles = {i["title"].lower() for i in admin_notifications}
     assert any("подтвердил участие" in t for t in admin_titles)
     assert any("отменил участие" in t for t in admin_titles)
-    breakpoint()
 
     ack_req.json = {"ids": [i["id"] for i in admin_notifications]}
     r = admin_client.prepsend(ack_req)

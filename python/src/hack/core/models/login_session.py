@@ -16,6 +16,6 @@ class LoginSession(Base):
     token: Mapped[str]
     created_at: Mapped[CreatedAt]
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete='cascade'))
 
     user: Mapped[User] = relationship(lazy="joined")
