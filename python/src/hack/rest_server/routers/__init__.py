@@ -6,6 +6,7 @@ from . import (
     files,
     events,
     events_cards,
+    notifications,
     debug,
 )
 
@@ -18,6 +19,7 @@ router.include_router(files.router, tags=["Userspace"])
 router.include_router(events_cards.router, tags=["Userspace"])
 router.include_router(events.userspace_router, tags=["Userspace"])
 router.include_router(events.admin_panel_router, tags=["Admin panel"])
+router.include_router(notifications.router, tags=["Userspace"])
 router.include_router(debug.router, tags=["Debug"])
 
 

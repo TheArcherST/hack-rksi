@@ -312,3 +312,19 @@ def make_update_my_participation() -> PatchedRequest:
         method="PUT",
         url=_base_url + "/events/{event_id}/participants/me",
     )
+
+
+# ---------- NOTIFICATIONS ----------
+
+def make_list_instant_notifications() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/notifications/instant",
+    )
+
+
+def make_ack_instant_notifications() -> PatchedRequest:
+    return PatchedRequest(
+        method="POST",
+        url=_base_url + "/notifications/instant/ack",
+    )

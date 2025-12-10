@@ -93,3 +93,46 @@ def test_notifications_flow(admin_client):
         "ADMIN_SET_PASSWORD",
     }
     # todo: verify
+
+    # now check instant notifications
+
+    req = api_templates.make_list_instant_notifications()
+    r = primary_client.prepsend(req)
+    assert r.status_code == 200
+    primary_notifications = r.json()
+    assert len(primary_notifications) == 2
+    assert all(i["acked_at"] is None for i in primary_notifications)
+
+    ack_req = api_templates.make_ack_instant_notifications()
+    ack_req.json = {"ids": [i["id"] for i in primary_notifications]}
+    r = primary_client.prepsend(ack_req)
+    assert r.status_code == 204
+
+    req = api_templates.make_list_instant_notifications()
+    r = primary_client.prepsend(req)
+    assert r.status_code == 200
+    assert r.json() == []
+
+    req.params = {"include_acked": True}
+    r = primary_client.prepsend(req)
+    assert r.status_code == 200
+    assert len(r.json()) == 2
+    assert all(i["acked_at"] is not None for i in r.json())
+
+    req = api_templates.make_list_instant_notifications()
+    r = admin_client.prepsend(req)
+    assert r.status_code == 200
+    admin_notifications = r.json()
+    assert len(admin_notifications) == 2
+    admin_titles = {i["title"].lower() for i in admin_notifications}
+    assert any("подтвердил участие" in t for t in admin_titles)
+    assert any("отменил участие" in t for t in admin_titles)
+
+    ack_req.json = {"ids": [i["id"] for i in admin_notifications]}
+    r = admin_client.prepsend(ack_req)
+    assert r.status_code == 204
+
+    req = api_templates.make_list_instant_notifications()
+    r = admin_client.prepsend(req)
+    assert r.status_code == 200
+    assert r.json() == []
