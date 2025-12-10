@@ -15,35 +15,115 @@
     make test 
     ```
 
+## Архитектура в первом приближении
 
-## Предметная область
+```mermaid
+flowchart LR
+    Client -->|HTTP| API[FastAPI + Dishka]
 
-Событие
-1. name (NOT NULL)
-2. short_description (NULL, для всплывающей подсказки)
-3. description (NOT NULL, для карточки события)
-4. starts_at (NOT NULL, больше даты создания)
-5. ends_at (NOT NULL, должна быть позже даты начала)
-6. image_url (NOT NULL)
-7. payment_info (текстовое поле для описания процесса оплаты, например: 
-  "Сегодня у Синельникова Станислава день рождения, собираем ему на подарок. 
-  Можно перевести на ВТБ (200р) по номеру 89185123076. В переводе прошу указать
-  свое ФИО и подтвердить участие.", необязательное)
-8. max_participants_count (NULL)
-9. location (NULL, примечание: нестандартное поле, может потом удалим)
-10. created_at (NOT NULL, внутреннее поле)
-11. rejected_at (NULL)
-12. status (Вычисляемое поле. ACTIVE/PAST/REJECTED)
+    subgraph Storage[Хранилища]
+        PG[Postgres]
+        S3[S3-совместимое хранилище]
+    end
 
-Участник события
-1. event_id
-2. user_id
-3. Дата создания
+    subgraph RedisBlock[Redis]
+        RL[Счётчик с TTL]
+        Q[Очередь задач]
+    end
 
-Пользователь
-1. Email
-2. Username (= email)
-3. Password hash
-4. Role (user/administrator)
-5. Дата создания (регистрации)
-6. Дата удаления
+    API -->|Постоянное хранение| PG
+    API -->|Распределённое хранение| S3
+    API -->|Rate limiting| RL
+    API -->|Ставит задачи| Q
+
+    Scheduler[TaskIQ Scheduler] -->|Планирует задачи| Q
+    Worker[TaskIQ Worker] -->|Берёт задачи| Q
+        
+    Worker -->|Фиксирует уведомления| PG
+    Worker -->|Отправляет почту| Email[Почтовый сервер]
+```
+
+
+## Сущности, жизненный цикл которых поддерживается РСУБД
+```mermaid
+erDiagram
+    USER ||--o{ LOGIN_SESSION : "1 : N"
+    USER ||--o{ ISSUED_LOGIN_RECOVERY : "1 : N"
+    USER ||--o{ EVENT_PARTICIPANT : "N : M"
+    USER ||--o{ INSTANT_NOTIFICATION : "1 : N"
+    EVENT ||--o{ EVENT_PARTICIPANT : "1 : N"
+
+    USER {
+      int id PK
+      string email UK
+      string username UK
+      string full_name
+      string password_hash
+      string role "USER | ADMINISTRATOR"
+      bool is_system
+      datetime created_at
+      datetime deleted_at "nullable"
+    }
+
+    LOGIN_SESSION {
+      uuid uid PK
+      int user_id FK "FK to USER.id"
+      string token
+      string user_agent "nullable"
+      datetime created_at
+    }
+
+    ISSUED_REGISTRATION {
+      int id PK
+      string email
+      string full_name
+      string password_hash
+      int verification_code
+      uuid token
+      datetime created_at
+    }
+
+    ISSUED_LOGIN_RECOVERY {
+      int id PK
+      int user_id FK "FK to USER.id"
+      uuid token UK
+      datetime created_at
+      datetime used_at "nullable"
+    }
+
+    EVENT {
+      int id PK
+      string name
+      string short_description "nullable"
+      string description
+      datetime starts_at
+      datetime ends_at
+      string image_url
+      string payment_info "nullable"
+      int max_participants_count "nullable"
+      string location "nullable"
+      datetime created_at
+      datetime rejected_at "nullable"
+    }
+
+    EVENT_PARTICIPANT {
+      int id PK
+      int event_id FK "FK to EVENT.id"
+      int user_id FK "FK to USER.id"
+      string status "PARTICIPATING | REJECTED"
+      datetime reminder_queued_at "nullable"
+      datetime created_at
+    }
+
+    INSTANT_NOTIFICATION {
+      int id PK
+      int recipient_id FK "FK to USER.id"
+      string title
+      string content
+      string cta_url "nullable"
+      string cta_label "nullable"
+      datetime acked_at "nullable"
+      datetime created_at
+    }
+
+```
