@@ -25,14 +25,19 @@ router = APIRouter(
 )
 @inject
 async def list_instant_notifications(
-    session: FromDishka[AsyncSession],
-    authorized_user: FromDishka[AuthorizedUser],
-    include_acked: bool = Query(default=False),
+        session: FromDishka[AsyncSession],
+        authorized_user: FromDishka[AuthorizedUser],
+        include_acked: bool = Query(default=False),
+        limit: int = 50,
+        offset: int = 0,
 ) -> list[InstantNotification]:
+    limit = max(1, min(limit, 200))
     stmt = (
         select(InstantNotification)
         .where(InstantNotification.recipient_id == authorized_user.id)
         .order_by(InstantNotification.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     if not include_acked:
         stmt = stmt.where(InstantNotification.acked_at.is_(None))
@@ -47,10 +52,10 @@ async def list_instant_notifications(
 )
 @inject
 async def ack_instant_notifications(
-    session: FromDishka[AsyncSession],
-    uow_ctl: FromDishka[UoWCtl],
-    authorized_user: FromDishka[AuthorizedUser],
-    payload: AckInstantNotificationsDTO,
+        session: FromDishka[AsyncSession],
+        uow_ctl: FromDishka[UoWCtl],
+        authorized_user: FromDishka[AuthorizedUser],
+        payload: AckInstantNotificationsDTO,
 ) -> None:
     unique_ids = list(dict.fromkeys(payload.ids))
     if not unique_ids:
