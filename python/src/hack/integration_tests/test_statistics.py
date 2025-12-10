@@ -7,7 +7,6 @@ from . import api_templates
 from .conftest import make_authed_client
 
 
-@pytest.skip("Will pass only on clean instance")
 def test_statistics_endpoints(admin_client):
     primary_email = f"stat-user-{uuid4()}@example.com"
     secondary_email = f"stat-user-{uuid4()}@example.com"
@@ -88,6 +87,8 @@ def test_statistics_endpoints(admin_client):
     assert user_stats["rejected_events"] == 0
     assert user_stats["upcoming_participations"] == 2
     assert abs(user_stats["participation_rate"] - (2 / 3)) < 0.01
+
+    pytest.skip(reason="Rest of statistics test relays on clean instance")
 
     req = api_templates.make_get_admin_statistics()
     r = admin_client.prepsend(req)

@@ -328,6 +328,13 @@ def make_update_my_participation() -> PatchedRequest:
     )
 
 
+def make_export_event_participants() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/events/{event_id}/participants/export",
+    )
+
+
 # ---------- NOTIFICATIONS ----------
 
 def make_list_instant_notifications() -> PatchedRequest:

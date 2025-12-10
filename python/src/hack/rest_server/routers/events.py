@@ -1,8 +1,12 @@
+import csv
+import io
 from datetime import datetime, timezone
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
+from openpyxl import Workbook
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -534,4 +538,110 @@ def _count_participating(event: Event) -> int:
         1
         for p in event.participants
         if p.status == EventParticipant.ParticipationStatusEnum.PARTICIPATING
+    )
+
+
+def _render_csv(headers: list[str], rows: list[list[str]]) -> bytes:
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer)
+    writer.writerow(headers)
+    writer.writerows(rows)
+    return buffer.getvalue().encode("utf-8")
+
+
+def _render_xlsx(headers: list[str], rows: list[list[str]]) -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Participants"
+    ws.append(headers)
+    for row in rows:
+        ws.append(row)
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.read()
+
+
+@admin_panel_router.get(
+    "/{event_id}/participants/export",
+)
+@inject
+async def export_event_participants(
+    session: FromDishka[AsyncSession],
+    authorized_administrator: FromDishka[AuthorizedAdministrator],
+    event_id: int,
+    fmt: str = Query(default="csv", alias="format"),
+) -> StreamingResponse:
+    fmt = fmt.lower()
+    if fmt not in {"csv", "xlsx"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported format",
+        )
+
+    event = await session.scalar(select(Event).where(Event.id == event_id))
+    if event is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found",
+        )
+
+    participants_stmt = (
+        select(
+            EventParticipant.user_id,
+            User.email,
+            User.full_name,
+            EventParticipant.status,
+            EventParticipant.created_at.label("joined_at"),
+        )
+        .join(User, User.id == EventParticipant.user_id)
+        .where(EventParticipant.event_id == event_id)
+        .where(
+            EventParticipant.status
+            == EventParticipant.ParticipationStatusEnum.PARTICIPATING
+        )
+        .order_by(EventParticipant.created_at, EventParticipant.id)
+    )
+    participant_rows = list(await session.execute(participants_stmt))
+
+    headers = [
+        "user_id",
+        "email",
+        "full_name",
+        "status",
+        "joined_at",
+        "event_id",
+        "event_name",
+    ]
+    rows: list[list[str]] = []
+    for row in participant_rows:
+        joined_at = getattr(row, "joined_at", None)
+        rows.append(
+            [
+                str(row.user_id),
+                row.email,
+                row.full_name,
+                row.status.value if hasattr(row, "status") else str(row.status),
+                joined_at.isoformat() if joined_at else "",
+                str(event.id),
+                event.name,
+            ]
+        )
+
+    if fmt == "csv":
+        content = _render_csv(headers, rows)
+        media_type = "text/csv"
+        ext = "csv"
+    else:
+        content = _render_xlsx(headers, rows)
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        ext = "xlsx"
+
+    filename = f"event_{event.id}_participants.{ext}"
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
