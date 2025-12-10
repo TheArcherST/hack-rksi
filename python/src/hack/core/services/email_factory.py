@@ -86,7 +86,7 @@ class EmailFactory:
             "title": subject,
             "greeting_name": event.full_name,
             "verification_code": event.verification_code,
-            "lead": "Чтобы завершить регистрацию, введите код подтверждения.",
+            "lead": None,
         }
         return self._render("registration_confirm_code.html", subject, text, ctx)
 
@@ -103,7 +103,7 @@ class EmailFactory:
         ctx = {
             "title": subject,
             "greeting_name": event.full_name,
-            "lead": "Регистрация прошла успешно.",
+            "lead": None,
         }
         return self._render("registration_welcome.html", subject, text, ctx)
 
@@ -123,7 +123,7 @@ class EmailFactory:
         ctx = {
             "title": subject,
             "greeting_name": event.full_name,
-            "lead": "Мы получили запрос на сброс пароля.",
+            "lead": None,
             "cta_url": str(event.reset_url),
             "cta_label": "Сбросить пароль",
             "expires_at_text": date_text,
@@ -144,7 +144,7 @@ class EmailFactory:
         ctx = {
             "title": subject,
             "greeting_name": event.full_name,
-            "lead": "Пароль вашей учетной записи был изменен.",
+            "lead": None,
         }
         return self._render("password_changed.html", subject, text, ctx)
 
@@ -160,7 +160,7 @@ class EmailFactory:
         ctx = self._event_context(event, is_administrative_context=False)
         ctx.update({
             "title": subject,
-            "lead": "Вы приглашены на новое событие.",
+            "lead": None,
             "cta_label": "Перейти к событию",
         })
         return self._render("event_created.html", subject, text, ctx)
@@ -178,7 +178,7 @@ class EmailFactory:
         ctx = self._event_context(event, is_administrative_context=False)
         ctx.update({
             "title": subject,
-            "lead": summary,
+            "lead": None,
             "cta_label": "Посмотреть изменения",
         })
         if event.updates_summary:
@@ -197,10 +197,7 @@ class EmailFactory:
         ctx = self._event_context(event, is_administrative_context=False)
         ctx.update({
             "title": subject,
-            "lead": (
-                "Напоминание: событие скоро начнется. "
-                "Проверьте детали и подтвердите участие."
-            ),
+            "lead": None,
             "cta_label": "Перейти к событию",
             "hours_before": event.hours_before,
         })
@@ -221,7 +218,7 @@ class EmailFactory:
         ctx = self._event_context(event, is_administrative_context=True)
         ctx.update({
             "title": subject,
-            "lead": f"{event.participant_name} присоединился к событию.",
+            "lead": None,
             "cta_label": "Открыть событие",
             "participant_name": event.participant_name,
         })
@@ -247,10 +244,7 @@ class EmailFactory:
         ctx = self._event_context(event, is_administrative_context=True)
         ctx.update({
             "title": subject,
-            "lead": (
-                f"{event.participant_name} отменил участие. "
-                "Список участников обновлен."
-            ),
+            "lead": None,
             "cta_label": "Открыть событие",
             "participant_name": event.participant_name,
         })
@@ -277,10 +271,7 @@ class EmailFactory:
         ctx = {
             "title": subject,
             "greeting_name": event.full_name,
-            "lead": (
-                f"{admin_name} установил вам временный пароль. "
-                "Пожалуйста, смените его после входа."
-            ),
+            "lead": None,
             "temporary_password": event.temporary_password,
         }
         return self._render("admin_set_password.html", subject, text, ctx)
