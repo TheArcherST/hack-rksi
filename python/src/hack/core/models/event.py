@@ -68,6 +68,7 @@ class EventParticipant(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     created_at: Mapped[CreatedAt]
     status: Mapped[ParticipationStatusEnum]
+    reminder_queued_at: Mapped[datetime | None]
 
     event_id: Mapped[int] = mapped_column(ForeignKey("event.id"))
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))

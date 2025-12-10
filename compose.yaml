@@ -49,8 +49,21 @@ services:
       "taskiq", "worker",
       "hack.tasks.brokers.redis:make_worker_broker",
       "hack.tasks.tasks.send_email",
+      "hack.tasks.tasks.event_reminders",
       "--ack-type", "when_saved",
       "--no-propagate-errors",
+    ]
+    restart: unless-stopped
+    env_file: ./python/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+  taskiq-scheduler:
+    build: ./python
+    command: [
+      "taskiq", "scheduler",
+      "hack.tasks.brokers.redis:make_worker_scheduler",
+      "hack.tasks.tasks.event_reminders",
     ]
     restart: unless-stopped
     env_file: ./python/.env

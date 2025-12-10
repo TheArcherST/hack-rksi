@@ -10,8 +10,14 @@ from dishka.integrations.taskiq import (
     setup_dishka,
     TaskiqProvider,
 )
-from taskiq import SimpleRetryMiddleware, TaskiqMessage, BrokerMessage
+from taskiq import (
+    SimpleRetryMiddleware,
+    TaskiqMessage,
+    BrokerMessage,
+    TaskiqScheduler,
+)
 from taskiq.formatters.proxy_formatter import ProxyFormatter
+from taskiq.schedule_sources import LabelScheduleSource
 from taskiq_redis import ListQueueBroker
 
 from hack.core.providers import (
@@ -19,13 +25,14 @@ from hack.core.providers import (
     ProviderConfig,
     ConfigRedis,
 )
+from hack.tasks.brokers.default import default_broker
 from hack.tasks.providers import ProviderBroker
 
 
 class DishkaFormatter(ProxyFormatter):
     def dumps(self, message: TaskiqMessage) -> BrokerMessage:
         labels = message.labels.copy()
-        del labels[dishka_taskiq_integration.CONTAINER_NAME]
+        labels.pop(dishka_taskiq_integration.CONTAINER_NAME, None)
         message = message.model_copy(update={"labels": labels})
         return super().dumps(message)
 
@@ -72,3 +79,15 @@ def make_worker_broker():
     setup_dishka(container=container, broker=broker)
 
     return broker
+
+
+def make_worker_scheduler():
+    # todo: clarify logic of scheduler creation.  actually
+    #  as far I can see that's not need in *worker* scheduler here.
+    scheduler = TaskiqScheduler(
+        broker=make_worker_broker(),
+        sources=[
+            LabelScheduleSource(default_broker),
+        ],
+    )
+    return scheduler

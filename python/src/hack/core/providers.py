@@ -156,7 +156,6 @@ class ProviderDatabase(Provider):
     ) -> AsyncEngine:
         return create_async_engine(
             config.get_sqlalchemy_url("psycopg"),
-            echo=True,
         )
 
     @provide(scope=Scope.SESSION)
