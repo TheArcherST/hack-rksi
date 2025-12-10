@@ -28,15 +28,10 @@ def client() -> PatchedSession:
 
 
 @pytest.fixture(autouse=True, scope="function")
-def wipe_examples(client) -> Generator[PatchedSession, Any, None]:
+def wipe_examples(client):
     req = api_templates.make_delete_examples()
     r = client.prepsend(req)
     assert r.status_code == 200
-    try:
-        yield client
-    finally:
-        r = client.prepsend(req)
-        assert r.status_code == 200
 
 
 def promote_user_to_admin(email: str, client: PatchedSession):
