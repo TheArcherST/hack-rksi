@@ -28,8 +28,8 @@ async def list_instant_notifications(
         session: FromDishka[AsyncSession],
         authorized_user: FromDishka[AuthorizedUser],
         include_acked: bool = Query(default=False),
-        limit: int = 50,
-        offset: int = 0,
+        limit: int = Query(default=50),
+        offset: int = Query(default=0),
 ) -> list[InstantNotification]:
     limit = max(1, min(limit, 200))
     stmt = (
