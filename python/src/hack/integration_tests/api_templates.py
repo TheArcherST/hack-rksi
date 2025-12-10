@@ -342,3 +342,19 @@ def make_ack_instant_notifications() -> PatchedRequest:
         method="POST",
         url=_base_url + "/notifications/instant/ack",
     )
+
+
+# ---------- STATISTICS ----------
+
+def make_get_my_statistics() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/users/me/statistics",
+    )
+
+
+def make_get_admin_statistics() -> PatchedRequest:
+    return PatchedRequest(
+        method="GET",
+        url=_base_url + "/statistics",
+    )
