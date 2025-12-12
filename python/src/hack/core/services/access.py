@@ -58,7 +58,7 @@ class AccessService:
         if existing_user_id is not None:
             raise ErrorEmailAlreadyExists
 
-        retry_after = await self._check_registration_rate_limit(email=email)
+        retry_after = await self._check_rate_limit(email=email, key="registration")
         if retry_after is not None:
             raise ErrorRegistrationRateLimited(retry_after=retry_after)
 
@@ -87,6 +87,9 @@ class AccessService:
         issued_registration = await self.orm_session.scalar(stmt)
         if issued_registration is None:
             raise ErrorVerification
+        retry_after = await self._check_rate_limit(email=issued_registration.email, key="verification")
+        if retry_after is not None:
+            raise ErrorRegistrationRateLimited(retry_after=retry_after)
         now = datetime.now(tz=timezone.utc)
         created_at = issued_registration.created_at
         if created_at.tzinfo is None:
@@ -248,11 +251,11 @@ class AccessService:
 
         return None
 
-    async def _check_registration_rate_limit(self, email: str) -> int | None:
+    async def _check_rate_limit(self, email: str, key: str) -> int | None:
         """
         Returns retry_after (seconds) if rate limited, otherwise None.
         """
-        key = f"registration:rate:{email.lower()}"
+        key = f"{key}:rate:{email.lower()}"
         attempts = await self._redis.incr(key)
         delay = min(
             int(

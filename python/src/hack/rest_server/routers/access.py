@@ -100,6 +100,12 @@ async def verify_registration(
             status_code=400,
             detail="Invalid verification code",
         ) from e
+    except ErrorRegistrationRateLimited as e:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many verification requests, try later",
+            headers={"Retry-After": str(e.retry_after)},
+        ) from e
 
     await uow_ctl.commit()
     await notification_service.notify_about_event(
