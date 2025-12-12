@@ -20,7 +20,7 @@ from hack.rest_server.schemas.debug import (
 
 router = APIRouter(
     prefix="/debug",
-    include_in_schema=False,
+    include_in_schema=True,  # todo: exclude
 )
 
 
