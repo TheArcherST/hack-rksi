@@ -1,5 +1,9 @@
 # Backend TTK Афиши
 
+Фронтенд: https://github.com/addavriance/rksi-hack-app
+Задеплоенный проект: https://ttk-afisha.lvalue.dev/
+
+
 ## Запуск
 
 1. Установить `docker` и `make`.
