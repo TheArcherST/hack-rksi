@@ -1,5 +1,8 @@
 # Backend TTK Афиши
 
+Это бекенд решения команды asyncore кейса от ТТК на хакатоне IT-Tech 2025. 
+Решение побелило в номинации «Лучшее WEB-приложение» (приз 50 т.р.)
+
 Фронтенд: https://github.com/addavriance/rksi-hack-app
 
 Задеплоенный проект: https://ttk-afisha.lvalue.dev/
